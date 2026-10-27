@@ -16,12 +16,12 @@ import type { BreakerState } from "./breaker.ts";
 import { killSwitch as readKillSwitch } from "./kill-switch.ts";
 import type { SwitchState } from "./kill-switch.ts";
 import { DEFAULT_LEDGER_PATH, LedgerUnreadable, SpendLedger, chicagoDay, chicagoIso } from "./ledger.ts";
-import type { Totals, Usage } from "./ledger.ts";
+import type { LedgerEntry, Totals, Usage } from "./ledger.ts";
 import { SlidingWindowRateLimiter } from "./limiter.ts";
 import type { RateLimiter } from "./limiter.ts";
 import { DEFAULT_LIMITS, loadLimits, maxTokensFor } from "./limits.ts";
 import type { Limits } from "./limits.ts";
-import { actualUsd, loadPrices, priceFor, worstCaseUsd } from "./prices.ts";
+import { actualUsd, loadPrices, priceFor, round8, worstCaseUsd } from "./prices.ts";
 import type { PriceTable } from "./prices.ts";
 
 export type GuardContext = { session_id: string; action_id: string; kind: string };
@@ -66,6 +66,13 @@ export type GuardState = {
   breaker: BreakerState;
   limits: Limits;
   now: string;
+};
+
+export type GuardStatus = {
+  state: GuardState;
+  session: { session_id: string; calls: number; committed_usd: number; reserved_worst_usd: number; limit_usd: number; refusals: number } | null;
+  last: LedgerEntry[];
+  day_usd: number;
 };
 
 // The budget decision, isolated so a test can break it on purpose (S3) and show the rate limiter
@@ -220,6 +227,27 @@ export class SpendGuard {
     if (gate) return { enabled: false, reason: gate.reason, limit: gate.limit, ...base };
     if (!this.model) return { enabled: false, reason: "NEBIUS_MODEL not set", limit: "model", ...base };
     return { enabled: true, ...base };
+  }
+
+  // Read-only view for the spend panel (task 004): one session's lines and totals, straight from the
+  // ledger file. Nothing here changes state.
+  status(sessionId?: string, lastN = 10): GuardStatus {
+    const s = this.state();
+    if (this.ledger instanceof LedgerUnreadable) return { state: s, session: null, last: [], day_usd: 0 };
+    const all = this.ledger.last(10_000);
+    const mine = sessionId ? all.filter((e) => "session_id" in e && e.session_id === sessionId) : all;
+    const reserves = mine.filter((e) => e.kind === "reserve");
+    const session = sessionId
+      ? {
+          session_id: sessionId,
+          calls: reserves.length,
+          committed_usd: this.ledger.committed({ session_id: sessionId }),
+          reserved_worst_usd: round8(reserves.reduce((n, e) => n + (e.kind === "reserve" ? e.usd : 0), 0)),
+          limit_usd: this.limits.sessionUsd,
+          refusals: mine.filter((e) => e.kind === "refuse").length,
+        }
+      : null;
+    return { state: s, session, last: mine.slice(-lastN), day_usd: this.ledger.committed({ day: chicagoDay(this.now()) }) };
   }
 
   async call(req: GuardCall): Promise<GuardResult> {
