@@ -114,3 +114,29 @@ set HOST to expose)`.
 
 Nothing in this task. (The smoke run started the server with `LLM_ENABLED=false` and a scratch ledger path and
 made no model call.)
+
+## Hub addendum — D12 and the browser walkthrough (2026-10-26 23:3x CDT, hub session)
+
+- **D12 ✅** on a fresh `git clone` of `235f616` into a scratch directory: `npm ci` → typecheck clean → 145/145
+  offline → `.env` from `.env.example` with test judge accounts, `LLM_ENABLED=false`, port 18790 →
+  `npx tsx scripts/spend-status.ts init` → `npm start` printed `listening on http://127.0.0.1:18790/ (this
+  machine only; set HOST to expose)`. Probed from a second process: `GET /` 200 (24,444 bytes), `GET /api/me`
+  401 `not_logged_in`, `POST /api/login` 200 with an `HttpOnly` cookie, `GET /api/state` 200 with judge,
+  clock `2026-11-03T09:00:00-06:00`, wall `{ enabled: false, mode: "sample" }`, 49 chat lines, 18 seat rows,
+  3 conflicts.
+- **Browser walkthrough** (built-in browser, same clean clone): login form → four panels rendered with the red
+  SAMPLE banner; panel 2 shows the overturn chain ("replaced ‹Focus blocks may be moved …› (2026-09-02)");
+  *Show the Monday focus-block contrast* → 10/26 `ready` (move to 11:30–13:30) and 11/2 `refused` with the
+  10/20 decision and the one it replaced → **Approve** → `executed · read back v2 2026-10-26 11:30–13:30` →
+  **Undo** → `restored (v3 2026-10-26 09:00)`; panel 4 shows the wall off, 0 calls, $0.0000, limits $0.15 /
+  $3 / $47.
+- **One bug found and fixed** (`2aa17dd`): the *Plan* button on each conflict card was white on near-white —
+  it carried the class `plan`, which the plan card's CSS rule also matched (computed color `#fff` on
+  `#f7f9fc`). Renamed to `plan-btn`; after the fix the computed style is white on `rgb(43,76,126)`. D10's
+  text checks could not see this; a styled-element check (button text colour ≠ background) is a candidate
+  for 005.
+- **Observed, not fixed:** after a server restart the browser landed on the login form again although
+  `state/sessions/auth.json` had kept the sessions (3 entries). Either the cookie was not re-sent by this
+  browser or the restart invalidated it; not investigated tonight. For judges this means "log in again after
+  a deploy", which is acceptable; 005 may look.
+- Server stopped afterwards; the scratch clone is outside the repository.

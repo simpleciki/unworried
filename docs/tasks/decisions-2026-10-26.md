@@ -43,6 +43,20 @@ coordinating session; "Ciki" = the author herself. Later tasks follow these.
 | 7 | human relation wins and is recorded `source: "human"` on the edge line | Accepted. |
 | 8 | `seats-view.ts` change travelled in the time refactor commit | Noted; no rewrite of history. |
 
+## From 004 (hub verified 145/145 offline at 23:3x CDT; D12 clean-clone run by the hub, see 004-report addendum)
+
+| # | question | decision |
+|---|---|---|
+| 1 | SAMPLE mode via a `ReplayGuard` because `src/chat` checks the wall before the cache | Accepted for the hackathon. The cleaner change (chat consults the cache before asking the wall) goes on the 005 list if there is time after the author has seen the screen; not before. |
+| 2 | `NEBIUS_MODEL` must be set even in SAMPLE mode (cache key) | Accepted; `.env.example` has it. README "Run it" must say it in one line. |
+| 3 | "I cannot date this" implemented in `api.ts` | Accepted. |
+| 4 | chat clock = demo clock + elapsed since server start | Accepted; it keeps a December judge's sentence from reading as `FUTURE`. Written in `docs/screen.md`. |
+| 5 | budget per login, not per judge name | Accepted (the day and total walls still bound everything). |
+| 6 | sessions persisted to `state/sessions/auth.json`, no secrets | Accepted. |
+| 7 | calendar grid groups by the Chicago date prefix of `start` | Accepted for the seed; listed under Known limits. |
+| 8 | `UNRESOLVED` wording in panel 2 | Accepted. |
+| 9–10 | D12 and screenshots | Hub. |
+
 ## Hook blocks
 
 Two in the hub (a Python script that *wrote documentation* containing the Token Factory hostname), one in
