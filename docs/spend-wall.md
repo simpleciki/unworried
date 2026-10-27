@@ -106,6 +106,29 @@ NEBIUS_MODEL=<id> npx tsx -e 'import("./src/spend/guard.ts").then(async m => con
 m.SpendGuard.fromEnv().call({ session_id: "s7", action_id: "s7", kind: "probe", user: "Reply with the word ok." })))'`,
 then `npx tsx scripts/spend-status.ts` and compare the one settle line with the Usage page the next morning.
 
+## Ledger mirror (hosts that forget their disk)
+
+A free web host that sleeps when idle loses its local files on every restart, and a ledger that is lost
+would make the wall start again from zero. With `LEDGER_MIRROR_REPO` and `LEDGER_MIRROR_TOKEN` set
+(`src/spend/mirror.ts`), one copy of the ledger lives in a private GitHub repository:
+
+- **Start:** the mirror is downloaded to `SPEND_LEDGER_PATH` before the wall opens it. No file in the mirror →
+  no local file is created and model calls stay off. A local file that differs from the mirror → model calls
+  stay off with the reason on the screen; a person resolves it. Any mirror error (bad token, network) → off.
+- **Every call:** the reserve line is pushed to the mirror **before** the request is sent; if the push fails the
+  request is not sent, the reserve stays booked at the worst case, and the refusal says `ledger`. The settle
+  line follows in the background; if it is lost, the next start counts that reserve in full (over-counts,
+  never under-counts).
+- **One writer:** each push carries the sha it replaces, pushes are serial, and a stale sha is a loud
+  conflict, never an overwrite. Run one instance only.
+- The token is sent only as a bearer header to `api.github.com`; it is not logged and not written to the
+  ledger (test M8). Every ledger change is a commit in that repository, so the spend history can be audited
+  there line by line.
+- Seeding: the mirror starts as a copy of the author's local ledger at deploy time, so development spend is
+  carried into the hosted total. After that, spend only from one place.
+
+Tests M1–M9 in `src/spend/mirror.test.ts` (offline, fake GitHub).
+
 ## What the wall does not do
 
 - It cannot see calls made with the same key from outside this repository. The key's only user should be this app.
