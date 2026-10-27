@@ -2,7 +2,7 @@
 // all under state/sessions/<session_id>/, seeded on first use from data/ exactly as scripts/seed-ledger.ts
 // does. reset() wipes and re-seeds that judge only. The spend wall is shared (one ledger file) and keyed by
 // the same session id, so a judge spends only their own budget.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { ActionStore } from "../action/execute.ts";
 import type { ActionPlan } from "../action/plan.ts";
@@ -121,6 +121,25 @@ export class JudgeSandbox {
   }
 }
 
+// The latest sent_at (as an instant) over every judge's chat log under dir; -Infinity when there is none.
+// An unreadable line fails loudly: a guessed clock is worse than no server.
+export function latestChatInstant(dir: string): number {
+  let latest = -Infinity;
+  if (!existsSync(dir)) return latest;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const file = join(dir, entry.name, "chat.jsonl");
+    if (!existsSync(file)) continue;
+    for (const line of readFileSync(file, "utf8").split("\n")) {
+      if (!line) continue;
+      const at = Date.parse((JSON.parse(line) as ChatLine).sent_at);
+      if (Number.isNaN(at)) throw new Error(`${file}: a chat line has no readable sent_at`);
+      if (at > latest) latest = at;
+    }
+  }
+  return latest;
+}
+
 export class SandboxManager {
   readonly root: string;
   readonly vocab: Vocab;
@@ -134,6 +153,7 @@ export class SandboxManager {
   private readonly seedCalendar: string;
   private readonly live = new Map<string, JudgeSandbox>();
   private readonly startedAt: number;
+  private readonly chatBase: number;
   private readonly now: () => number;
 
   constructor(opts: { root: string; guard: SpendGuard; clock?: string; now?: () => number; cache?: ResponseCache }) {
@@ -146,6 +166,9 @@ export class SandboxManager {
     this.replay = new ReplayGuard(opts.guard);
     this.now = opts.now ?? Date.now;
     this.startedAt = this.now();
+    // A restart must not move the chat clock backwards: a sentence said after a restart would otherwise be
+    // stamped before one said earlier, and the newer decision would be ordered as the older one.
+    this.chatBase = Math.max(this.clock, latestChatInstant(join(opts.root, "state", "sessions")) + 1000);
     const seeded = loadConversationSeed(join(opts.root, "data", "conversation-seed.jsonl"));
     this.seed = seeded.ledger;
     this.seedMessages = seeded.messages;
@@ -153,10 +176,11 @@ export class SandboxManager {
     this.cache = opts.cache ?? new LayeredCache(new FileCache(join(opts.root, "cache", "samples"), { readOnly: true }), new FileCache(join(opts.root, "cache", "live")));
   }
 
-  // The chat clock: the demo clock plus the time elapsed since the server started, so new messages are
-  // ordered after the seed and are never "from the future" relative to the demo clock's day.
+  // The chat clock: the demo clock (or, after a restart, one second past the latest chat line already on
+  // disk) plus the time elapsed since the server started, so new messages are ordered after the seed and
+  // after everything said before the restart, and are never "from the future" relative to the demo clock's day.
   chatNow(): number {
-    return this.clock + (this.now() - this.startedAt);
+    return this.chatBase + (this.now() - this.startedAt);
   }
 
   // The guard a model-using step should use right now: the real wall when it is open, the replay guard
