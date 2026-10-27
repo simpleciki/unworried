@@ -9,6 +9,8 @@ repository `simpleciki/unworried-ledger` (`docs/spend-wall.md` § Ledger mirror)
 | step | who |
 |---|---|
 | Private repository `simpleciki/unworried-ledger` (created 2026-10-27, private, branch `main`) | done |
+| Private code repository `simpleciki/unworried` (created and pushed 2026-10-27) | done |
+| Making `unworried` public (after the 10/29 secret scan) | the author decides |
 | Fine-grained GitHub token for that repository | the author, in her browser |
 | Render account (no card), the web service, the secret environment values | the author |
 | Seeding the mirror from the author's local ledger (after S7) | hub, with the author's go-ahead |
@@ -27,9 +29,10 @@ Paste it only into Render's environment (step 2). Never into chat, a file or a c
 
 ## 2. The Render web service (author)
 
-Render needs the code from a GitHub repository; this repository has no remote yet. **Open question for the
-author:** create the public `unworried` repository now (the rules require a public repo with an open-source
-licence at submission), or keep it private until 10/29 and grant Render access to the private repository.
+Render needs the code from a GitHub repository: `simpleciki/unworried`, **private** (created and pushed
+2026-10-27 on the author's go-ahead). When connecting GitHub to Render, grant Render access to that one
+repository only. It goes public only after the 10/29 secret scan passes **and** the author says so (the rules
+require a public repository with an open-source licence at submission).
 
 Settings:
 
