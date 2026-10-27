@@ -130,6 +130,11 @@ later task can log a guarded model call on the same line.
 
 ## v1 limitations
 
+- The engine drops a card whose `decided_at` does not parse whenever it is asked with a date (`asOf`), so an
+  undated arrangement would silently look like "no decision". The seats view scans the seat for undated
+  cards first and reports `UNDATED`, naming them, before asking the engine.
+- The engine does not call two unlinked cards on one seat a conflict (it reports `PASS` with `coexisting`);
+  the seats view does (`AMBIGUOUS`). Either way the plan refuses and names both.
 - All-day events only conflict with all-day events.
 - No create / delete; no recurrence rules; one calendar (`owner: "me"`).
 - The free-slot search is greedy (earliest first) and looks at most 5 days ahead.
