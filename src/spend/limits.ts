@@ -17,8 +17,12 @@ export type Limits = {
 
 export const MAX_TOKENS_HARD_CAP = 1024;
 
+// Call kinds known so far (task 003): intake = one user sentence → candidate cards; relate = one verdict
+// per existing card on the seat; explain = ≤ 4 sentences about a plan.
+export const DEFAULT_MAX_TOKENS_BY_KIND: Record<string, number> = { intake: 512, relate: 256, explain: 512 };
+
 export const DEFAULT_LIMITS: Limits = {
-  maxTokensByKind: {},
+  maxTokensByKind: { ...DEFAULT_MAX_TOKENS_BY_KIND },
   maxTokensDefault: 512,
   actionCalls: 8,
   actionUsd: 0.03,
@@ -50,7 +54,7 @@ function num(env: NodeJS.ProcessEnv, name: string, fallback: number, opts: { int
 export const maxTokensEnvName = (kind: string) => `SPEND_MAX_TOKENS_${kind.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
 
 export function loadLimits(env: NodeJS.ProcessEnv = process.env): Limits {
-  const byKind: Record<string, number> = {};
+  const byKind: Record<string, number> = { ...DEFAULT_MAX_TOKENS_BY_KIND };
   for (const [name, raw] of Object.entries(env)) {
     if (!name.startsWith("SPEND_MAX_TOKENS_") || raw === undefined) continue;
     const kind = name.slice("SPEND_MAX_TOKENS_".length).toLowerCase();
