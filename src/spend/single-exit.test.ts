@@ -32,6 +32,22 @@ describe("S8 — single exit", () => {
     expect(hits, `files constructing the provider: ${hits.join(", ")}`).toEqual(["llm/nebius.test.ts", "spend/guard.ts"]);
   });
 
+  // C13 — every model call goes through the guard: outside tests, ModelClient is constructed only in
+  // src/chat/*, and every such file hands it guard.asProvider(...).
+  it("only src/chat/*.ts constructs ModelClient, always over asProvider", () => {
+    const nonTest = files.filter((f) => !f.rel.endsWith(".test.ts") && !f.rel.endsWith(".test-helpers.ts"));
+    const constructing = nonTest.filter((f) => /new\s+ModelClient\s*\(/.test(f.text)).map((f) => f.rel).sort();
+    expect(constructing, `files constructing ModelClient: ${constructing.join(", ")}`).toEqual(["chat/explain.ts", "chat/intake.ts", "chat/relate.ts"]);
+    for (const rel of constructing) {
+      const text = nonTest.find((f) => f.rel === rel)!.text;
+      expect(text, `${rel} must wrap guard.asProvider(...)`).toMatch(/new\s+ModelClient\s*\(\s*provider/);
+      expect(text, `${rel} must obtain its provider from asProvider`).toMatch(/const provider = deps\.guard\.asProvider\(/);
+    }
+    // And asProvider is defined in the guard and used nowhere else outside src/chat.
+    const users = nonTest.filter((f) => /\.asProvider\(/.test(f.text)).map((f) => f.rel).sort();
+    expect(users).toEqual(["chat/explain.ts", "chat/intake.ts", "chat/relate.ts"]);
+  });
+
   it("the scan actually covers the files it should", () => {
     const rels = files.map((f) => f.rel);
     expect(rels).toContain("spend/guard.ts");
