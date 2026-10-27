@@ -231,7 +231,7 @@
   function renderConflicts() {
     const out = $("conflicts");
     if (!STATE.conflicts.length) { out.innerHTML = '<p class="muted">No conflicts at or after the demo clock.</p>'; return; }
-    out.innerHTML = STATE.conflicts.map((c) => `<div class="conflict" data-conflict="${esc(c.conflict_id)}"><div><b>${esc(fmt(c.overlap.start))}</b> — "${esc(c.a.title)}" × "${esc(c.b.title)}"</div><div style="margin-top:.3rem"><button class="plan">Plan</button></div><div class="err"></div><div class="plan-out">${c.plan_id && STATE.plans[c.plan_id] ? planHtml(STATE.plans[c.plan_id]) : ""}</div></div>`).join("");
+    out.innerHTML = STATE.conflicts.map((c) => `<div class="conflict" data-conflict="${esc(c.conflict_id)}"><div><b>${esc(fmt(c.overlap.start))}</b> — "${esc(c.a.title)}" × "${esc(c.b.title)}"</div><div style="margin-top:.3rem"><button class="plan-btn">Plan</button></div><div class="err"></div><div class="plan-out">${c.plan_id && STATE.plans[c.plan_id] ? planHtml(STATE.plans[c.plan_id]) : ""}</div></div>`).join("");
     out.querySelectorAll(".conflict").forEach((el) => wirePlan(el, el.dataset.conflict));
   }
   function stepWords(s) {
@@ -249,7 +249,7 @@
     return `<div class="plan" data-plan-id="${esc(plan.plan_id)}"><div>Plan <code>${esc(plan.plan_id)}</code> — <span class="status-${esc(plan.status)}">${esc(plan.status)}</span></div><ul>${steps}</ul><div><b>Why (template):</b> ${esc(plan.explanation)}</div>${prose}<div class="muted">depends on: ${plan.seat_versions.map(esc).join("; ")}</div>${result}${undone}<div style="margin-top:.4rem">${buttons}</div><div class="err"></div></div>`;
   }
   function wirePlan(el, conflictId, all) {
-    const btn = el.querySelector(".plan");
+    const btn = el.querySelector(".plan-btn");
     if (btn) btn.addEventListener("click", async () => { el.querySelector(".err").textContent = ""; try { const p = await api("POST", "/api/plan", { conflict_id: conflictId }); el.querySelector(".plan-out").innerHTML = planHtml(p); wireActions(el); STATE.plans[p.plan.plan_id] = p; } catch (e) { el.querySelector(".err").textContent = `${e.code}: ${e.message}`; } });
     wireActions(el);
   }
