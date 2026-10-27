@@ -72,6 +72,9 @@ commit `.env`.
   model id without a price, so a wrong price can under-book but a wrong id cannot leak spend.
 - Judge sessions live in `state/`; a judge who logs in again gets a fresh sandbox and a fresh session budget
   (the day and total budgets still bound the whole hackathon).
+- A server restart keeps each judge's calendar, decisions, drafts and chat, but not the plans on screen or
+  their undo tokens (held in memory): after a restart, press *Plan* again; an approved change is already in
+  the calendar and its version history.
 
 ## License
 
