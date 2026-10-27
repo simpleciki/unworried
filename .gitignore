@@ -1,0 +1,12 @@
+docs/session-archive/
+node_modules/
+.env
+.env.*
+!.env.example
+logs/
+state/
+cache/
+.demo/
+.DS_Store
+.claude/settings.local.json
+.cursor/
