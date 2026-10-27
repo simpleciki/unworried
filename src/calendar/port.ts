@@ -59,46 +59,5 @@ export function instant(iso: string, what = "timestamp"): number {
   return t;
 }
 
-const FMT = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Chicago",
-  hourCycle: "h23",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  weekday: "long",
-  timeZoneName: "longOffset",
-});
-
-export type ChicagoParts = { year: number; month: number; day: number; hour: number; minute: number; second: number; weekday: string; offset: string; dayKey: string };
-
-export function chicagoParts(ms: number): ChicagoParts {
-  const p: Record<string, string> = {};
-  for (const part of FMT.formatToParts(new Date(ms))) p[part.type] = part.value;
-  const offset = p.timeZoneName === "GMT" ? "+00:00" : p.timeZoneName.replace("GMT", "");
-  return { year: +p.year, month: +p.month, day: +p.day, hour: +p.hour, minute: +p.minute, second: +p.second, weekday: p.weekday.toLowerCase(), offset, dayKey: `${p.year}-${p.month}-${p.day}` };
-}
-
-// ISO 8601 with the Chicago offset in force at that instant, e.g. 2026-11-01T01:30:00-06:00.
-export function chicagoIso(ms: number): string {
-  const p = chicagoParts(ms);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:${pad(p.second)}${p.offset}`;
-}
-
-// The instant of a Chicago wall-clock time. During the repeated hour when DST ends (01:00–02:00 on
-// 2026-11-01) the first occurrence (CDT) is returned; during the skipped hour in March the clock is
-// moved forward.
-export function chicagoLocal(year: number, month: number, day: number, hour: number, minute = 0): number {
-  for (const offsetHours of [5, 6]) {
-    const candidate = Date.UTC(year, month - 1, day, hour + offsetHours, minute);
-    const p = chicagoParts(candidate);
-    if (p.year === year && p.month === month && p.day === day && p.hour === hour && p.minute === minute) return candidate;
-  }
-  return Date.UTC(year, month - 1, day, hour + 6, minute); // skipped hour: the CST reading, one hour later on the wall
-}
-
-export const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
-export type Weekday = (typeof WEEKDAYS)[number];
+export { chicagoParts, chicagoIso, chicagoLocal, WEEKDAYS } from "../time/chicago.ts";
+export type { ChicagoParts, Weekday } from "../time/chicago.ts";

@@ -10,7 +10,7 @@ import type { CheckedCard, Seat } from "../engine/types.ts";
 import { seatKey } from "../engine/types.ts";
 import type { Vocab } from "../engine/vocab.ts";
 import { scopeChain } from "../engine/vocab.ts";
-import type { Weekday } from "../calendar/port.ts";
+import type { Weekday } from "../time/chicago.ts";
 
 export type LookupState = "PASS" | "NOT_FOUND" | "UNRESOLVED_CONFLICT" | "AMBIGUOUS" | "UNDATED" | "UNREADABLE" | "FUTURE";
 
@@ -77,15 +77,21 @@ export function parseWorkingHours(quote: string): WorkingHours | null {
 
 // ---- the view ---------------------------------------------------------------------------------------
 
+// card_id → value in the shapes data/vocab.yaml documents (the decision ledger's side table). Quotes stay
+// the user's exact words; the value is read from here first and from the quote only when absent.
+export type ValueLookup = (card_id: string) => string | undefined;
+
 export class SeatsView {
   readonly graph: SeatGraph;
   readonly vocab: Vocab;
   readonly clock: number; // decisions made after this instant do not exist yet
+  readonly values: ValueLookup;
 
-  constructor(graph: SeatGraph, vocab: Vocab, clock: number) {
+  constructor(graph: SeatGraph, vocab: Vocab, clock: number, values: ValueLookup = () => undefined) {
     this.graph = graph;
     this.vocab = vocab;
     this.clock = clock;
+    this.values = values;
   }
 
   priority(category: string, at: number): Lookup<number> {
@@ -145,7 +151,8 @@ export class SeatsView {
     }
     const decided = parseTime(card.decided_at)!.start;
     if (decided > this.clock) return { ...base, state: "FUTURE", card_id: card.card_id, cards: [card.card_id], reason: `${name(card)} is dated after now (${new Date(this.clock).toISOString()})` };
-    const value = parse(card.quote);
+    const sideValue = this.values(card.card_id);
+    const value = parse(sideValue ?? card.quote);
     const replacedLink = this.graph.links.find((l) => l.to === card.card_id && l.status === "ok" && l.relation === "REPLACES");
     const replacedCard = replacedLink ? this.graph.cards.get(replacedLink.from) : undefined;
     const common = {
@@ -158,7 +165,7 @@ export class SeatsView {
       effective: card.effective,
       replaced: replacedCard ? { card_id: replacedCard.card_id, quote: replacedCard.quote, decided_at: replacedCard.decided_at } : null,
     };
-    if (value === null) return { ...common, state: "UNREADABLE", reason: `${name(card)} is in force on ${key} but does not state ${expected}` };
+    if (value === null) return { ...common, state: "UNREADABLE", reason: `${name(card)} is in force on ${key} but ${sideValue !== undefined ? `its recorded value "${sideValue}" is not` : "does not state"} ${expected}` };
     return { ...common, state: "PASS", value };
   }
 }

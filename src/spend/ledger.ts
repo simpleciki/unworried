@@ -7,6 +7,7 @@
 // "zero spent" — the guard stays disabled until a human creates the file (scripts/spend-status.ts init).
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { chicagoDay, chicagoIso as chicagoIsoShared } from "../time/chicago.ts";
 import { round8 } from "./prices.ts";
 
 export const DEFAULT_LEDGER_PATH = "state/spend-ledger.jsonl";
@@ -253,45 +254,8 @@ function isEntry(v: unknown): v is LedgerEntry {
   return typeof o.kind === "string" && KINDS.has(o.kind) && typeof o.at === "string" && typeof o.day === "string";
 }
 
-// ---- America/Chicago clock helpers ----------------------------------------------------------------
-// The ledger's day buckets are Chicago calendar days, so the day of 2026-11-01 (DST ends 02:00 CDT) is
-// 25 hours long and 2026-03-08 is 23. Instants are compared as epoch ms, never as wall-clock strings.
-
-const FMT = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Chicago",
-  hourCycle: "h23",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  timeZoneName: "longOffset",
-});
-
-// ISO 8601 with the Chicago offset in force at that instant, e.g. 2026-11-01T01:30:00.000-06:00.
-export function chicagoIso(ms: number): string {
-  const p: Record<string, string> = {};
-  for (const part of FMT.formatToParts(new Date(ms))) p[part.type] = part.value;
-  const off = p.timeZoneName === "GMT" ? "+00:00" : p.timeZoneName.replace("GMT", "");
-  const millis = String(ms % 1000 < 0 ? (ms % 1000) + 1000 : ms % 1000).padStart(3, "0");
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}.${millis}${off}`;
-}
-
-export const chicagoDay = (ms: number) => chicagoIso(ms).slice(0, 10);
-
-// The instants a Chicago calendar day covers: [start, end) in epoch ms. Midnight is 05:00Z under CDT
-// and 06:00Z under CST, decided by which offset is in force at that midnight, so the day DST ends is
-// 25 hours and the day it starts is 23.
-export function chicagoDayBounds(day: string): { start: number; end: number } {
-  const m = day.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) throw new Error(`not a calendar day: ${day}`);
-  const midnight = (y: number, mo: number, d: number) => {
-    const cst = Date.UTC(y, mo - 1, d, 6); // 00:00 CST
-    return chicagoDay(cst - 3_600_000) === chicagoIso(cst - 3_600_000).slice(0, 10) && chicagoIso(cst - 3_600_000).slice(0, 10) === `${String(y).padStart(4, "0")}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}` ? cst - 3_600_000 : cst;
-  };
-  const start = midnight(+m[1], +m[2], +m[3]);
-  const next = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + 1));
-  const end = midnight(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate());
-  return { start, end };
-}
+// ---- America/Chicago clock helpers (shared: src/time/chicago.ts) ------------------------------------
+// The ledger writes its timestamps with milliseconds; day buckets are Chicago calendar days.
+export const chicagoIso = (ms: number) => chicagoIsoShared(ms, true);
+export { chicagoDay };
+export { chicagoDayBounds } from "../time/chicago.ts";
