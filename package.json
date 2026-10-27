@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=26" },
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "tsx src/cli/ui.ts",
+    "ui": "tsx src/cli/ui.ts"
   },
   "devDependencies": {
     "@types/node": "^24.9.1",
