@@ -12,8 +12,9 @@ export const FALLBACK_MODES = ["auto", "deep", "text", "fusion", "code", "judge"
 export const BLOCKED_MODES = ["local", "image", "video", "speech", "music", "embed", "transcribe", "perception", "vision"].map((m) => P + m);
 
 export const isBlocked = (mode: string) => BLOCKED_MODES.includes(mode);
-// A pinned upstream model id, sent to the same runtime endpoint as a routing mode.
-export const PROVIDER_MODEL = /^nvidia\/[a-z0-9.\-]+$/;
+// A pinned provider model id ("vendor/name", e.g. nvidia/NVIDIA-Nemotron-Nano-9B-v2), sent as is. A
+// Nebius run pins one id this way and uses no Meterless routing mode at all.
+export const PROVIDER_MODEL = /^[a-z0-9-]+\/[A-Za-z0-9._\-]+$/;
 
 // Default route when METERLESS_MODE_ORDER is not set: pinned upstream models, best first. Chosen from the
 // extraction prose rate measured on 2026-10-22 (replies that were a plan, not JSON): ultra-550b 63/63,
@@ -88,6 +89,9 @@ export class FileDeadModes extends MemoryDeadModes {
 // Candidate modes for one call: the human's order if set, else the agent's mode (or the one that stuck)
 // then the fallback order. Unlisted and blocked modes are dropped; known-dead modes go to the end.
 export function candidateModes(first: string, opts: { order?: string[]; available?: string[]; dead?: DeadModes }): string[] {
+  // A pinned provider model id with no human-set order has no fallback: the Meterless modes are not
+  // required for a run against another provider, and a dead pinned model is reported, not rerouted.
+  if (!opts.order?.length && PROVIDER_MODEL.test(first) && !first.startsWith(P)) return [first];
   // /v1/models lists routing modes only; a pinned provider model id is passed through as is.
   const listed = (m: string) => PROVIDER_MODEL.test(m) || !opts.available || opts.available.includes(m);
   const all = [...new Set(opts.order?.length ? opts.order : [first, ...FALLBACK_MODES])].filter((m) => !isBlocked(m) && !EXCLUDED_MODELS.includes(m) && listed(m));
