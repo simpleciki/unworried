@@ -1,0 +1,62 @@
+# Decision vocabulary for unworried (Morgan's arrangements). Read by src/engine/vocab.ts (parseYaml:
+# nested maps, "- item" lists, quoted scalars) and by src/action/seats-view.ts. A seat is
+# topic | facet | scope. The VALUE of a seat is read from the quote of the card in force, with the
+# sentence shapes given under each topic; a quote that does not fit is "unreadable" and the plan refuses.
+
+topics:
+  priority: "which category yields to which. Quote shape: `... rank N` where 1 yields to nothing (travel rank 1, kids_pickup rank 2, ...)"
+  movable: "whether events of a category may be moved by the assistant. Quote shape: `may be moved` / `may not be moved`"
+  pickup_backup: "who covers a pickup when I cannot. Quote shape: `backup <Name>` or `<Name> picks up`"
+  working_hours: "the hours a move may land in. Quote shape: `HH:MM-HH:MM` and optionally `Monday to Friday`"
+
+# Facets: event categories (for priority and movable), weekdays (for pickup_backup), and `work`
+# (for working_hours).
+facets:
+  kids_pickup: "school and club pickups and drop-offs for Theo"
+  work_focus: "Morgan's own focus blocks (no attendees)"
+  work_meeting: "meetings with other people about Loomstack or Pebblemail"
+  travel: "flights, drives, hotel logistics"
+  personal: "family, health, errands"
+  monday: "weekday facet for pickup_backup"
+  tuesday: "weekday facet for pickup_backup"
+  wednesday: "weekday facet for pickup_backup"
+  thursday: "weekday facet for pickup_backup"
+  friday: "weekday facet for pickup_backup"
+  saturday: "weekday facet for pickup_backup"
+  sunday: "weekday facet for pickup_backup"
+  work: "the single facet of working_hours"
+
+scopes:
+  global: "every arrangement"
+  kids: "arrangements about Theo"
+  work: "arrangements about Morgan's work"
+
+scope_parent:
+  kids: global
+  work: global
+
+# Morgan decides Morgan's arrangements. A card from anyone else is downgraded to "mentions".
+deciders:
+  priority:
+    - me
+  movable:
+    - me
+  pickup_backup:
+    - me
+  working_hours:
+    - me
+
+# CalEvent.category must be one of these (same keys as the category facets above).
+categories:
+  kids_pickup: "pickups and drop-offs"
+  work_focus: "focus blocks"
+  work_meeting: "meetings"
+  travel: "travel"
+  personal: "personal"
+
+# The cast. ALL FICTIONAL — see data/README.md.
+people:
+  me: "Morgan, independent product manager (Loomstack, Pebblemail); the calendar owner"
+  Alex: "Morgan's partner"
+  Jordan: "neighbour; backup for school pickup"
+  Theo: "Morgan and Alex's child; robotics club after school on Tuesdays and Thursdays"
