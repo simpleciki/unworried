@@ -86,6 +86,12 @@ no accounts configured every route but `/`, `/api/login` and `/api/me` answers 4
 shows the reason on the login form. There is no anonymous mode. Every button press is one request and one
 `action_id` (trace `ref`, spend ledger `action_id`), so `SPEND_ACTION_*` bounds one click.
 
+**The chat clock** stamps every new chat line: the demo clock plus the time elapsed since the server started,
+so a judge's sentence typed in December reads as said on 11/3 and never as "decided after now" (`FUTURE`).
+After a restart it starts one second past the latest chat line already under `state/sessions/`, never back at
+the demo clock — otherwise a sentence said after a restart would be stamped before one said earlier, and the
+newer decision would be ordered as the older one (test D13). The demo clock itself never moves.
+
 ## SAMPLE mode
 
 When the wall is off (`LLM_ENABLED=false`, budget, breaker, no key): the banner; `intake` runs its rule
