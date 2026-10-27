@@ -12,6 +12,8 @@ function nthSunday(year: number, month: number, n: number): number {
   return 1 + ((7 - first) % 7) + (n - 1) * 7;
 }
 
+// The offset most of this calendar date is on (the transition days themselves straddle two offsets;
+// see localMidnight for the instant-exact rule).
 export function chicagoOffsetMinutes(year: number, month: number, day: number): number {
   const md = month * 100 + day;
   const dstStart = 2 * 100 + nthSunday(year, 2, 2);
@@ -19,8 +21,21 @@ export function chicagoOffsetMinutes(year: number, month: number, day: number): 
   return md >= dstStart && md < dstEnd ? -300 : -360;
 }
 
+// Offset in force at an instant (-300 CDT, -360 CST), from the time zone rules, not from the date.
+export function chicagoOffsetAt(ms: number): number {
+  const off = OFFSET_FMT.formatToParts(new Date(ms)).find((p) => p.type === "timeZoneName")?.value ?? "GMT-06:00";
+  const m = off.match(/([+-])(\d{2}):(\d{2})/);
+  return m ? (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +m[3]) : 0;
+}
+const OFFSET_FMT = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", timeZoneName: "longOffset" });
+
+// Midnight of a Chicago calendar day: 05:00Z when CDT is in force at that midnight, 06:00Z when CST is.
+// On 2026-11-01 (DST ends 02:00) midnight is still CDT, so the day runs 05:00Z → 06:00Z next day (25 h);
+// on 2026-03-08 midnight is CST and the day is 23 h. Fixed 2026-10-26 (task 003): the date-level offset
+// above put both transition days entirely on their post-transition offset.
 function localMidnight(year: number, month: number, day: number): number {
-  return Date.UTC(year, month, day) - chicagoOffsetMinutes(year, month, day) * 60_000;
+  const cst = Date.UTC(year, month, day, 6);
+  return chicagoOffsetAt(cst - 3_600_000) === -300 ? cst - 3_600_000 : cst;
 }
 
 function span(y: number, m: number, d: number, days: number): Interval {
