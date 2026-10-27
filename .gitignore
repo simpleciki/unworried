@@ -5,7 +5,8 @@ node_modules/
 !.env.example
 logs/
 state/
-cache/
+cache/*
+!cache/samples/
 .demo/
 .DS_Store
 .claude/settings.local.json
