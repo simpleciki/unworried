@@ -2,10 +2,13 @@
 //   JUDGE_ACCOUNTS  name:secret,…   (required; without it the site shows only the login page and 401s)
 //   HOST, PORT      default 127.0.0.1:8787
 //   DEMO_CLOCK      default 2026-11-03T09:00:00-06:00
-//   plus the spend wall's variables (NEBIUS_*, LLM_ENABLED, SPEND_*).
+//   plus the spend wall's variables (NEBIUS_*, LLM_ENABLED, SPEND_*)
+//   and, on a host whose disk does not survive a restart, LEDGER_MIRROR_* (src/spend/mirror.ts).
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SpendGuard } from "../spend/guard.ts";
+import { DEFAULT_LEDGER_PATH } from "../spend/ledger.ts";
+import { GitHubLedgerMirror } from "../spend/mirror.ts";
 import { Auth, parseAccounts } from "../ui/auth.ts";
 import { createRouter, startServer } from "../ui/server.ts";
 import { SandboxManager } from "../ui/sessions.ts";
@@ -13,10 +16,25 @@ import { SandboxManager } from "../ui/sessions.ts";
 const root = join(import.meta.dirname, "..", "..");
 const env = process.env;
 
-function main() {
+// The ledger mirror, restored before the wall opens the ledger. Any mirror failure keeps model calls off
+// with the reason on the screen (configError); the site itself still starts in SAMPLE mode.
+async function mirrorFromEnv(): Promise<{ mirror?: GitHubLedgerMirror; configError?: string }> {
+  try {
+    const mirror = GitHubLedgerMirror.fromEnv(env);
+    if (!mirror) return {};
+    const outcome = await mirror.restore(env.SPEND_LEDGER_PATH || DEFAULT_LEDGER_PATH);
+    console.log(`ledger mirror: ${outcome === "absent" ? "no ledger in the mirror yet — model calls stay off" : outcome}`);
+    return { mirror };
+  } catch (e) {
+    return { configError: (e as Error).message };
+  }
+}
+
+async function main() {
   const accounts = parseAccounts(env.JUDGE_ACCOUNTS);
   const auth = new Auth({ accounts, file: join(root, "state", "sessions", "auth.json") });
-  const guard = SpendGuard.fromEnv(env, { log: (line) => console.error(line) });
+  const m = await mirrorFromEnv();
+  const guard = SpendGuard.fromEnv(env, { log: (line) => console.error(line), ...(m.mirror ? { mirror: m.mirror } : {}), ...(m.configError ? { configError: m.configError } : {}) });
   const sandboxes = new SandboxManager({ root, guard, clock: env.DEMO_CLOCK });
   const html = readFileSync(join(root, "src", "ui", "index.html"), "utf8");
   const route = createRouter({ auth, sandboxes, html, log: (line) => console.log(line) });

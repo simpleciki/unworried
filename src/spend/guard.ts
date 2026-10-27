@@ -7,6 +7,7 @@
 // with no usage, and a failed attempt, are booked at the worst case, never at 0. Every refusal says
 // which limit refused and happens before the network call.
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { ChatProvider, ChatRequest, ChatResult, ProviderStatus } from "../llm/provider.ts";
 import { ProviderError } from "../llm/provider.ts";
 import { NebiusProvider } from "../llm/nebius.ts";
@@ -18,6 +19,7 @@ import type { SwitchState } from "./kill-switch.ts";
 import { DEFAULT_LEDGER_PATH, LedgerUnreadable, SpendLedger, chicagoDay, chicagoIso } from "./ledger.ts";
 import type { LedgerEntry, Totals, Usage } from "./ledger.ts";
 import { SlidingWindowRateLimiter } from "./limiter.ts";
+import type { LedgerMirror } from "./mirror.ts";
 import type { RateLimiter } from "./limiter.ts";
 import { DEFAULT_LIMITS, loadLimits, maxTokensFor } from "./limits.ts";
 import type { Limits } from "./limits.ts";
@@ -117,6 +119,9 @@ export type GuardOptions = {
   now?: () => number;
   log?: (line: string) => void;
   newId?: () => string;
+  // Off-machine copy of the ledger (src/spend/mirror.ts). When set, a reserve that cannot be pushed there
+  // stops the call before the network: no mirror, no spend.
+  mirror?: LedgerMirror;
 };
 
 export class SpendGuard {
@@ -134,6 +139,7 @@ export class SpendGuard {
   private readonly now: () => number;
   private readonly log: (line: string) => void;
   private readonly newId: () => string;
+  private readonly mirror?: LedgerMirror;
   private breakerLogged = false;
 
   constructor(opts: GuardOptions) {
@@ -146,6 +152,7 @@ export class SpendGuard {
     this.log = opts.log ?? ((line) => console.error(line));
     this.newId = opts.newId ?? (() => randomUUID());
     this.configError = opts.configError;
+    this.mirror = opts.mirror;
     this.limiter = opts.limiter ?? new SlidingWindowRateLimiter({ maxGlobal: this.limits.rateGlobal, maxSession: this.limits.rateSession, now: this.now });
     this.breaker = opts.breaker ?? new HourlyBreaker(this.limits.hourUsd);
     this.budgetCheck = opts.budgetCheck ?? defaultBudgetCheck;
@@ -250,6 +257,14 @@ export class SpendGuard {
     return { state: s, session, last: mine.slice(-lastN), day_usd: this.ledger.committed({ day: chicagoDay(this.now()) }) };
   }
 
+  private readonly readLedgerFile = () => readFileSync(this.ledgerPath, "utf8");
+
+  // A settle line travels to the mirror in the background; if it is lost, the next start finds the reserve
+  // unsettled and counts it in full (over-counts, never under-counts). The failure is logged, not hidden.
+  private pushSettle(): void {
+    this.mirror?.push(this.readLedgerFile).catch((e) => this.log(`ledger mirror: settle line not pushed (${(e as Error).message}); the reserve stays counted in full`));
+  }
+
   async call(req: GuardCall): Promise<GuardResult> {
     const gate = this.gate();
     if (gate) return gate;
@@ -276,12 +291,23 @@ export class SpendGuard {
 
       const callId = this.newId();
       ledger.reserve({ call_id: callId, session_id: ctx.session_id, action_id: ctx.action_id, call_kind: ctx.kind, model, usd: worst.usd, input_tokens_bound: worst.inputTokensBound, max_tokens: maxTokens, attempt });
+      if (this.mirror) {
+        try {
+          await this.mirror.push(this.readLedgerFile);
+        } catch (e) {
+          // Nothing was sent; the reserve stays booked at the worst case (conservative, never 0).
+          ledger.settle(callId, { actualUsd: worst.usd, booked: "worst_case", outcome: "error" });
+          this.pushSettle();
+          return refuse("ledger", `not sent: the reserve did not reach the ledger mirror (${(e as Error).message})`, worst.usd);
+        }
+      }
       let r: ChatResult;
       try {
         r = await provider.chat({ model, system: req.system, user: req.user, temperature: req.temperature ?? 0, maxTokens });
       } catch (e) {
         // Unknown whether the server billed a failed attempt: book the worst case, never 0.
         ledger.settle(callId, { actualUsd: worst.usd, booked: "worst_case", outcome: "error" });
+        this.pushSettle();
         lastError = e instanceof ProviderError ? e : new ProviderError("http", (e as Error).message);
         const retryable = lastError.kind === "timeout" || (lastError.kind === "http" && (lastError.status ?? 0) >= 500);
         if (retryable && attempt === 1) continue; // the retry reserves budget again, above
@@ -290,6 +316,7 @@ export class SpendGuard {
       const booked: "usage" | "worst_case" = r.usage ? "usage" : "worst_case";
       const actual = r.usage ? actualUsd(price, r.usage) : worst.usd;
       ledger.settle(callId, { actualUsd: actual, booked, outcome: "ok", usage: r.usage, modelAnswered: r.model, latencyMs: r.latencyMs });
+      this.pushSettle();
       this.gate(); // trips the breaker now if this call pushed the trailing hour over the line
       return { ok: true, call_id: callId, text: r.text, model: r.model, latencyMs: r.latencyMs, usage: r.usage, attempts: attempt, cost: { reserved_usd: worst.usd, actual_usd: actual, booked } };
     }
