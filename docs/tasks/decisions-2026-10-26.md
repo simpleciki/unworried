@@ -30,8 +30,23 @@ coordinating session; "Ciki" = the author herself. Later tasks follow these.
 | 9 | duplicated Chicago time helpers | Task 003 moves them to `src/time/chicago.ts` and makes `spend/ledger.ts` and `calendar/port.ts` import it (pure move, tests unchanged). |
 | 10 | extra invented names (Casey, Devin, Harper, places) | Fine. Keep them out of any list of "the people" that implies a real household. |
 
+## From 003 (hub verified 132/132 offline at 23:1x CDT)
+
+| # | question | decision |
+|---|---|---|
+| 1 | seed is 49 messages, not 60–100 | Fine. Every trap and every fixture card is in it. Add texture only if the demo recording needs it (task 004 decides from the screen, not from a count). |
+| 2 | `same_seat` = seat heads + undated cards | Accepted. |
+| 3 | "undated" comes from the user reporting old notes; `decided_at: "unknown"` | Accepted. Task 004's confirmation card offers an explicit "I cannot date this" choice that writes `unknown`; nothing else may produce it. |
+| 4 | rule-fallback `quote` is unsure | Accepted. |
+| 5 | the explanation check is lexical | Accepted for the hackathon; **README "Known limits" must say so in one sentence** (a sentence made only of common lowercase words would pass). No second model call to judge a model. |
+| 6 | `chicagoOffsetMinutes(y, m, d)` kept as a date-level approximation | Keep, with its comment. |
+| 7 | human relation wins and is recorded `source: "human"` on the edge line | Accepted. |
+| 8 | `seats-view.ts` change travelled in the time refactor commit | Noted; no rewrite of history. |
+
 ## Hook blocks
 
-Two in the hub (a Python script that *wrote documentation* containing the Token Factory hostname) and one in
-the task session (a `sed` + `grep` mentioning the key's env name). All three were false positives of the
-money guard on text that made no call. Recorded; the guard is not being changed during the hackathon.
+Two in the hub (a Python script that *wrote documentation* containing the Token Factory hostname), one in
+the task session (a `sed` + `grep` mentioning the key's env name), then two more in the hub (a `sed` with the
+old hostname; a Python script whose observation text named the key's env variable). All five were false
+positives of the money guard on text that made no call. Recorded in the hub's observation queue (#025); the
+guard is not being changed during the hackathon.
