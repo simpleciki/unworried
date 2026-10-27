@@ -41,7 +41,13 @@ Settings:
 | Instance type | Free |
 | Build command | `npm ci` |
 | Start command | `npm start` |
-| `NODE_VERSION` | ⬜ the repository asks for Node ≥ 26; Render's docs (read 2026-10-27) give 24.22.1 as the default and do not mention 26 — check on the first deploy |
+| `NODE_VERSION` | `26` — first deploy 2026-10-27 17:38 CDT: "Using Node.js version 26.12.1 via environment variable NODE_VERSION", build successful |
+
+First deploy (2026-10-27, commit `1ca2793`): live at https://unworried.onrender.com — `GET /` 200, `/api/me`
+401 without a login, start log "ledger mirror: no ledger in the mirror yet — model calls stay off" (the token
+reached the private repository; an absent file is a 404, not an auth error), wall OFF. `npm ci` reports 3
+vulnerabilities (1 moderate, 2 critical) — all in vitest's dev tree (`tinypool`, `@vitest/mocker`);
+`npm audit --omit=dev` finds 0.
 
 Environment (secret values typed by the author in Render's dashboard):
 
