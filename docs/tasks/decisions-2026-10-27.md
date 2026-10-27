@@ -28,3 +28,27 @@ Hub recommendation: **Railway Hobby, one service, one volume mounted at the app'
 `SPEND_LEDGER_PATH` inside that volume, Serverless (app sleeping) **off**, a usage hard limit set in the
 Railway console. No code change is needed for that shape: auth, sandboxes and the ledger all live under
 `state/`. Pending: Ciki looks at her Railway plan and says yes / no (money).
+
+## 〔定 2026-10-27 11:06 Ciki〕Hosting: no money — "先别花钱，托管再想想别的办法。"
+
+Railway Hobby is off. The $0 plan the hub built on branch `feat/ledger-mirror` (not merged; merges only on
+Ciki's yes):
+
+- **Host: Render Free web service, no payment method.** Official page (read 11:0x CDT): free services spin
+  down after "15 minutes without receiving any inbound traffic", spin-up "takes about one minute", the local
+  filesystem is lost on spin-down, 750 instance hours a month, and without a payment method an overage
+  *suspends* the free services for the rest of the month — it cannot charge anything.
+- **The one thing that must survive a restart — the spend ledger — lives in a private GitHub repository**
+  (`src/spend/mirror.ts`, the `feat(spend)` commit on that branch): restored at start, every reserve pushed *before* the request is sent,
+  any mirror failure keeps model calls off with the reason on screen. Tests M1–M9; a mutation check (skip the
+  awaited push) turns M4, M5, M8 red. Smoke against the real GitHub API with a fake token: `HTTP 401 (Bad
+  credentials)` → wall OFF with that reason, no ledger created, token in no log line. 157/157 offline.
+- **What does not survive on Render Free** (accepted as known limits, to be written in README and the
+  Devpost testing instructions): judge sandboxes and logins reset after 15 idle minutes (log in again, fresh
+  seeded sandbox); the first page after idle takes about a minute.
+- **Ciki's steps (accounts and tokens are hers):** ① say yes to the private repo (the hub can create it with
+  `gh`, name e.g. `unworried-ledger`) ② create a fine-grained token limited to that repository, Contents read
+  and write ③ create the Render account (no card) and paste the token and the Nebius key into Render's
+  environment herself. The hub seeds the mirror from her local ledger after S7.
+- **Not yet checked:** Render's supported Node version (the repo asks for Node ≥ 26) and whether its build
+  installs `tsx` (a devDependency) — check before deploy.
