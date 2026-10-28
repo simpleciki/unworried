@@ -1,7 +1,7 @@
 # Task 005 — Visual pass: "A's layout + B's strike-through"
 
 Decided 2026-10-27 19:48 CDT by the author: *"要 A+B 轻版，按这个写设计卡并实现。"* The mock-up is
-`docs/design/directions.html` → button **A+B 轻**. This task restyles and rearranges `src/ui/index.html`; it
+`docs/design/directions.html` → button **A+B light**. This task restyles and rearranges `src/ui/index.html`; it
 changes no behaviour. Every row of `docs/screen.md` (top bar, the four panels, SAMPLE mode, the three demo
 routes, "What the screen refuses to do") must still hold word for word where it names on-screen text.
 

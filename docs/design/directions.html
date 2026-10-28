@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>unworried 视觉方向</title>
+ <title>unworried — visual directions</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font: 15px/1.5 system-ui, -apple-system, sans-serif; background: #e9e9ec; color: #222; }
@@ -16,7 +16,7 @@
   .frame { max-width: 1240px; margin: 1rem auto 3rem; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.18); }
   .dir { display: none; } .dir.on { display: block; }
 
-  /* ============ A · Calm — 安心的助理 ============ */
+   /* ============ A · Calm — the reassuring assistant ============ */
   .A { --bg:#f6f2ea; --ink:#2a2723; --mute:#8a8277; --line:#e6dfd2; --card:#fffdf8; --sage:#4f7a5d; --sagebg:#e5efe6; --clay:#b4532a; --claybg:#f7e6dc;
        background: var(--bg); color: var(--ink); font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
   .A header { display:flex; align-items:center; gap:1rem; padding: 1.1rem 2rem; }
@@ -53,7 +53,7 @@
   .A .chat .ai { background: var(--bg); }
   .A .chat input { width:100%; font:inherit; border:1.5px solid var(--line); border-radius:999px; padding:.55rem 1rem; background:#fff; margin-top:.5rem; }
 
-  /* ============ B · Ledger — 决定的账本 ============ */
+   /* ============ B · Ledger — the book of decisions ============ */
   .B { --paper:#fbfaf7; --ink:#141414; --mute:#6f6a62; --rule:#1a1a1a; --hair:#d8d3ca; --red:#b3261e; --blue:#1f3a93;
        background: var(--paper); color: var(--ink); font-family: ui-serif, "New York", Georgia, serif; }
   .B header { display:flex; align-items:baseline; gap:1.5rem; padding: 1.4rem 2.2rem .8rem; border-bottom: 3px double var(--rule); }
@@ -81,7 +81,7 @@
   .B .btn.o { background: transparent; color: var(--ink); }
   .B .foot { border-top: 3px double var(--rule); padding: .7rem 2.2rem; font-family: ui-monospace, Menlo, monospace; font-size:.75rem; color: var(--mute); display:flex; gap:2rem; }
 
-  /* ============ C · Control — 技术评委的仪表盘 ============ */
+   /* ============ C · Control — a dashboard for technical judges ============ */
   .C { --bg:#0c0f0d; --panel:#131815; --line:#232b26; --ink:#e6ece8; --mute:#7f8b84; --green:#76b900; --amber:#f2b33d; --red:#ff5d5d; --cyan:#5ad1e6;
        background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, sans-serif; }
   .C header { display:flex; align-items:center; gap:1.2rem; padding: .9rem 1.4rem; border-bottom: 1px solid var(--line); }
@@ -120,7 +120,7 @@
   .C .ledger .r { color: var(--amber); } .C .ledger .s { color: var(--green); }
 
 
-  /* ============ AB · A 的布局 + B 的划线（第二稿） ============ */
+   /* ============ AB · A's layout + B's strike-through (second draft) ============ */
   .AB { --bg:#f6f2ea; --ink:#2a2723; --mute:#8a8277; --line:#e6dfd2; --card:#fffdf8; --sage:#4f7a5d; --sagebg:#e5efe6; --clay:#b4532a; --red:#b3261e;
         --serif: ui-serif, "New York", Georgia, serif; --mono: ui-monospace, "SF Mono", Menlo, monospace;
         background: var(--bg); color: var(--ink); font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
@@ -142,7 +142,7 @@
   .AB h2 { font-size: 1.6rem; line-height:1.25; margin:.3rem 0 1.1rem; font-weight:700; }
   .AB h2 em { font-style: normal; color: var(--sage); }
   .AB .lbl { font-size:.78rem; color:var(--mute); text-transform: uppercase; letter-spacing:.07em; margin-bottom:.2rem; }
-  /* B 的账本条目，换成 A 的配色 */
+   /* B's ledger entries, in A's colours */
   .AB .entry { display:grid; grid-template-columns: 5.4rem 1fr; gap: .15rem 1rem; padding: .75rem 0; border-top: 1px solid var(--line); }
   .AB .entry:last-child { border-bottom: 1px solid var(--line); }
   .AB .entry .d { font-family: var(--mono); font-size:.76rem; color: var(--mute); padding-top:.2rem; line-height:1.4; }
@@ -176,7 +176,7 @@
   .AB .cost .m { margin-top:.6rem; font-size:.82rem; color: var(--mute); }
   .AB .cost .m .tr { height:6px; background: var(--line); border-radius:6px; overflow:hidden; margin-top:.2rem; }
   .AB .cost .m .tr i { display:block; height:100%; background: var(--sage); }
-  /* 「重」：B 的档案感铺满侧栏 */
+   /* "Heavy": B's archive feel across the side column */
   .AB.heavy .chat .me, .AB.heavy .chat .card .q, .AB.heavy .holds .v b { font-family: var(--serif); }
   .AB.heavy .box h3, .AB.heavy .hero .lbl { font-family: var(--mono); font-size:.72rem; letter-spacing:.12em; text-transform: uppercase; color: var(--mute); font-weight:500; }
   .AB.heavy .hero { border-top: 3px double var(--ink); border-radius: 4px 4px 22px 22px; }
@@ -201,12 +201,12 @@
 </head>
 <body>
 <div class="switch">
-  <button data-k="AB">A+B 轻</button>
-  <button data-k="ABh">A+B 重</button>
-  <button data-k="A">A · 安心助理</button>
-  <button data-k="B">B · 决定账本</button>
-  <button data-k="C">C · 技术仪表盘</button>
-  <span class="note">同一个时刻：11/5 周四接送撞上从 Denver 回来的航班。内容是演示数据（Morgan / Theo / Jordan / Alex 都是虚构的）</span>
+   <button data-k="AB">A+B light</button>
+   <button data-k="ABh">A+B heavy</button>
+   <button data-k="A">A · Calm assistant</button>
+   <button data-k="B">B · Decision ledger</button>
+   <button data-k="C">C · Technical dashboard</button>
+   <span class="note">The same moment in each: the Thursday 11/5 pickup collides with the flight home from Denver. Demo data (Morgan / Theo / Jordan / Alex are fictional).</span>
 </div>
 
 <div class="why" id="why"></div>
@@ -357,7 +357,7 @@
   </div>
 </div>
 
-<!-- ===================== AB（第二稿：A 的布局 + B 的划线） ===================== -->
+ <!-- ===================== AB (second draft: A's layout + B's strike-through) ===================== -->
 <div class="dir AB" data-k="AB">
   <header>
     <div class="logo">un<span>worried</span></div>
@@ -425,11 +425,11 @@
 
 <script>
 const WHY = {
-  AB: "<b>A+B 轻（第二稿）</b>：A 的结构（顶部是演示时钟之后的三个冲突、主卡片一次讲一件事、右栏对话和「今天生效的约定」），加上 B 的划线：推翻链用账本条目排，被替代的那句红线划掉，生效的那句盖「In force」章，草稿盖「never sent」章。人说的原话用衬线引号，界面用圆体。花费收进右下角可展开的一栏。<br>和第一稿 A 的差别：「Why」那块从灰字列表变成有日期列的账本条目；侧栏「今天生效」里，被推翻的旧值也划掉留着（Thursday: <s>Alex</s> Jordan）。",
-  ABh: "<b>A+B 重</b>：同一份内容，B 的档案感更多：主卡片顶上加双线、标题改衬线、小标题改等宽大写、侧栏卡片变直角。<br>看哪个更像你要的：轻 = 产品感更强、更亲切；重 = 「这是一份家庭档案」的气质更明显，技术评委更容易记住，但没那么暖。",
-  A: "<b>A · 安心助理</b>：给忙碌家长用的消费级产品。一屏只讲一件事：这周哪一天需要你、交给谁、为什么。账本、版本、花费都收在后面，只在点开时出现。<br>赢在：评委 5 秒看懂「无忧」，最像能上线的产品。代价：技术深度要靠视频和「Why」那一块撑，技术评委第一眼看不到账本。",
-  B: "<b>B · 决定账本</b>：把核心技术（谁替代了谁、决定 ≠ 生效）做成视觉主角。被推翻的话用红线划掉，生效的话盖上蓝章，像一份家庭档案。<br>赢在：一眼看出它和普通日历助理不一样，「推翻链」本身就是记忆点。代价：衬线字体加纸张风格偏文艺；交互感比 A 弱。",
-  C: "<b>C · 技术仪表盘</b>：深色底配 NVIDIA 绿，三栏同时摆出对话、座位、冲突时间轴和花费。每一步推理都能看到。<br>赢在：Nebius / NVIDIA 技术评委最买账，「Token Factory 花了多少」放在最显眼的地方。代价：信息密，普通人觉得是给工程师用的；和一般的 AI 仪表盘撞脸的风险最高。"
+   AB: "<b>A+B light (second draft)</b>: A's structure (the three conflicts after the demo clock across the top, a main card that says one thing at a time, the conversation and \"what holds today\" on the right), plus B's strike-through: the overturn chain laid out as ledger entries, the replaced sentence struck through in red, the one in force stamped \"In force\", drafts stamped \"never sent\". The person's own words in serif quotes, the interface in a rounded sans. Spend folds into an expandable panel at the bottom right.<br>Versus draft A: the \"Why\" block goes from a grey list to dated ledger entries; in \"what holds today\", an overturned old value stays visible, struck through (Thursday: <s>Alex</s> Jordan).",
+   ABh: "<b>A+B heavy</b>: the same content with more of B's archive feel: a double rule over the main card, serif headings, monospace capitals for small headings, square side cards.<br>Which is closer to what you want: light = more of a product, warmer; heavy = more clearly \"a family archive\", more memorable for technical judges, but less warm.",
+   A: "<b>A · Calm assistant</b>: a consumer product for busy parents. One screen says one thing: which day this week needs you, who takes it, and why. Ledger, versions and spend sit behind, shown only when opened.<br>Wins: a judge gets \"unworried\" in five seconds; it looks most like something that could ship. Cost: the technical depth has to come from the video and the \"Why\" block; a technical judge does not see the ledger at first glance.",
+   B: "<b>B · Decision ledger</b>: makes the core technique (who replaced whom; decided ≠ in force) the visual lead. Overturned words are struck through in red, the ones in force get a blue stamp, like a family archive.<br>Wins: at a glance it is not an ordinary calendar assistant; the overturn chain itself is the thing you remember. Cost: serif type and a paper look lean literary; it feels less interactive than A.",
+   C: "<b>C · Technical dashboard</b>: dark background with NVIDIA green; three columns show the conversation, the seats, the conflict timeline and spend at once. Every step of reasoning is visible.<br>Wins: Nebius / NVIDIA technical judges respond to it most, and \"what Token Factory cost\" sits in the most visible place. Cost: dense; ordinary people read it as a tool for engineers, and it is the most likely to look like every other AI dashboard."
 };
 const set = (k) => {
   const dk = k === "ABh" ? "AB" : k;
