@@ -3,12 +3,12 @@
 One page, four panels, no framework, no CDN: `src/ui/index.html`, served by `src/ui/server.ts`. Layout and look
 (task 005, "A's layout + B's strike-through"): a strip of the conflicts at or after the clock on top; the left
 column is panel 3 with the selected conflict as the hero (plan, the *Why* ledger entries — the card used and
-the card it replaced, struck through in red — the draft under a *never sent* stamp), then the two-week grid,
+the card it replaced, struck through in red — the draft under a *Draft · you send it* stamp), then the two-week grid,
 the contrast and the outbox; the right column is panels 1, 2 and 4. One column on a phone.
 
 **Calm by default** (author, 2026-10-27: *an assistant that worries for you should not make you read*): the
 hero's headline says what is already handled ("Jordan can cover it. A note is ready for you to approve." →
-"done — … in your outbox, not sent."); the draft folds to its subject; the deciding rule and the one it
+"done — … in your outbox for you to send."); the draft folds to its subject; the deciding rule and the one it
 replaced stay in view, the standing rules it also followed fold under one line; the template explanation, the
 checked prose and `depends on` sit under *How it decided*. Panel 2 shows one line per answer — seats held by
 the same card share a line, seats with nothing decided share one ("No backup set: Sun, Mon, Wed, Fri") — and
@@ -65,7 +65,7 @@ Two weeks (10/26–11/08) as a 7-column grid, seven columns on a phone become tw
 are marked (orange edge, "with …"); every event shows its version. Below: **conflicts whose overlap starts at
 or after the demo clock** (11/3 Tuesday pickup × flight, 11/5 Thursday pickup × flight, 11/6 design review ×
 demo-day pickup). Each has **Plan** → the `ActionPlan`: status, steps in plain words ("move *…* from … to …",
-"draft a handoff to Jordan (never sent)"), the template explanation, and when the model is on the checked
+"Draft a handoff to Jordan · you send it"), the template explanation, and when the model is on the checked
 `explanation_prose` with removed sentences struck through under "not supported by the plan", plus
 `depends on: seat=card`. **Approve** runs `executePlan` with the approval flag and shows the result with every
 step's read-back (`v2 2026-10-26 11:30–13:30`); **Undo** appears when an `undo_token` exists and shows its
@@ -80,7 +80,8 @@ focus-block conflicts side by side — 10/26 `ready` (move to 11:30–13:30, the
 there; it is how D8 reads `v1 → v2 → v3`.
 
 **Outbox** lists drafts (`handoff` / `message`, to whom, subject, body) under a header that says *drafts only,
-never sent*. There is no send button and no send code.
+you send them*. There is no send button and no send code: approving saves the draft, and the
+parent sends it themselves (author, 2026-10-27: "never sent" read like a failure; the wording now says who sends).
 
 ## Panel 4 — What it cost
 

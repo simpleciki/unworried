@@ -186,7 +186,7 @@
         <div id="contrast-out"></div>
       </section>
       <section class="panel">
-        <h2>Outbox <small>— drafts only, never sent</small></h2>
+        <h2>Outbox <small>— drafts only · you send them</small></h2>
         <div id="outbox"></div>
       </section>
     </div>
@@ -409,15 +409,15 @@
     if (plan.status === "refused") return "I won't guess on this one — it needs you.";
     if (p.result && !["executed", "drafted"].includes(p.result.status)) return "that didn't go through — see below.";
     if (!s) return "two things on your calendar collide.";
-    if (s.kind === "draft_handoff") return p.result ? `done — a note asking ${to} to cover is in your outbox, not sent.` : `<em>${to}</em> can cover it. A note is ready for you to approve.`;
-    if (s.kind === "draft_message") return p.result ? `done — a message to ${to} is in your outbox, not sent.` : `a message to <em>${to}</em> is ready for you to approve.`;
+    if (s.kind === "draft_handoff") return p.result ? `done — a note asking ${to} to cover is in your outbox for you to send.` : `<em>${to}</em> can cover it. A note is ready for you to approve.`;
+    if (s.kind === "draft_message") return p.result ? `done — a message to ${to} is in your outbox for you to send.` : `a message to <em>${to}</em> is ready for you to approve.`;
     return p.result ? `done — ${esc(evTitle(s.target_event_id))} moved to ${esc(hm(s.after.start))}.` : `I can move ${esc(evTitle(s.target_event_id))} to <em>${esc(hm(s.after.start))}</em>.`;
   }
   const evTitle = (id) => (STATE.calendar.events.find((e) => e.event_id === id) || { title: id }).title;
   function stepWords(s) {
     if (s.kind === "reschedule_own") return `Move <i>${esc(evTitle(s.target_event_id))}</i> from ${esc(fmt(s.before.start))}–${esc(fmt(s.before.end).slice(11))} to <em>${esc(fmt(s.after.start))}–${esc(fmt(s.after.end).slice(11))}</em>`;
-    if (s.kind === "draft_handoff") return `Draft a handoff to <em>${esc(s.draft.to.join(", "))}</em> (never sent)`;
-    return `Draft a message to <em>${esc(s.draft.to.join(", "))}</em> with two candidate slots (never sent)`;
+    if (s.kind === "draft_handoff") return `Draft a handoff to <em>${esc(s.draft.to.join(", "))}</em> · you send it`;
+    return `Draft a message to <em>${esc(s.draft.to.join(", "))}</em> with two candidate slots · you send it`;
   }
   const entry = (cls, date, tag, quote) => `<div class="entry ${cls}"><div class="d">${esc(date)}</div><div>${tag}<div class="q">${quote}</div></div></div>`;
   // The "why" for a plan: for each seat it read, the card it used (quoted from STATE.cards, which holds every
@@ -449,7 +449,7 @@
   function planHtml(p) {
     const plan = p.plan, ex = p.explanation;
     const steps = plan.status === "refused" ? `<li class="status-refused">Refused: ${esc(plan.refusal.reason)}</li>` : plan.steps.map((s) => `<li>${stepWords(s)}</li>`).join("");
-    const drafts = plan.status === "refused" ? "" : plan.steps.filter((s) => s.draft).map((s) => `<details class="draft"><summary><div class="to">Draft to ${esc(s.draft.to.join(", "))} <span class="never">never sent</span></div><div class="subj">${esc(s.draft.subject)}</div><div class="fine" style="margin:.2rem 0 0">Read the draft</div></summary><pre>${esc(s.draft.body)}</pre></details>`).join("");
+    const drafts = plan.status === "refused" ? "" : plan.steps.filter((s) => s.draft).map((s) => `<details class="draft"><summary><div class="to">Draft to ${esc(s.draft.to.join(", "))} <span class="never">Draft · you send it</span></div><div class="subj">${esc(s.draft.subject)}</div><div class="fine" style="margin:.2rem 0 0">Read the draft</div></summary><pre>${esc(s.draft.body)}</pre></details>`).join("");
     const prose = ex.mode === "model" ? `<div class="explain"><b>Explanation (model, checked):</b> ${esc(ex.explanation_prose)}</div>${ex.explanation_removed.length ? `<div class="explain muted">not supported by the plan:<br>${ex.explanation_removed.map((r) => `<span class="removed">${esc(r)}</span>`).join("<br>")}</div>` : ""}` : `<div class="fine">explanation: template (${esc(ex.note || "model off")})</div>`;
     const result = p.result ? `<div class="result"><b>Result:</b> <span class="status-${esc(p.result.status)}">${esc(p.result.status)}</span>${p.result.reason ? ` — ${esc(p.result.reason)}` : ""}<ul>${p.result.steps.map((s) => `<li>step ${s.index}: ${esc(s.outcome)}${s.readback ? ` · read back ${esc(s.readback.version)} ${esc(fmt(s.readback.start))}–${esc(fmt(s.readback.end).slice(11))}` : ""}${s.error ? ` · ${esc(s.error)}` : ""}${s.draft_id ? " · in your outbox" : ""}</li>`).join("")}</ul></div>` : "";
     const undone = p.undo ? `<div class="result"><b>Undo:</b> <span class="status-${esc(p.undo.status)}">${esc(p.undo.status)}</span>${p.undo.reason ? ` — ${esc(p.undo.reason)}` : ""} ${(p.undo.events || []).map((e) => `· ${esc(evTitle(e.event_id))} ${esc(e.outcome)}${e.readback ? ` (${esc(e.readback.version)} ${esc(fmt(e.readback.start))})` : ""}`).join(" ")}</div>` : "";
@@ -459,7 +459,7 @@
       <ul class="steps">${steps}</ul>${drafts}
       ${result}${undone}
       ${buttons ? `<div class="actions">${buttons}</div>` : ""}
-      ${plan.status === "ready" && !p.result ? '<p class="fine">Nothing is sent. Your calendar only changes when you approve, and every change can be undone.</p>' : ""}
+      ${plan.status === "ready" && !p.result ? '<p class="fine">This assistant never sends anything: approving saves the draft for you to send. Your calendar only changes when you approve, and every change can be undone.</p>' : ""}
       <div class="lbl">Why</div>${chainHtml(plan)}
       <details class="more"><summary>How it decided</summary>
         <div class="explain"><b>Why (template):</b> ${esc(plan.explanation)}</div>${prose}
@@ -508,7 +508,7 @@
   }
 
   function renderOutbox() {
-    $("outbox").innerHTML = STATE.outbox.length ? STATE.outbox.map((d) => `<div class="ob"><div><b>${esc(d.kind)}</b> to ${esc(d.to.join(", "))} · <span class="muted">${esc(d.status)}, never sent · ${esc(fmt(d.created_at))}</span></div><div><i>${esc(d.subject)}</i></div><pre>${esc(d.body)}</pre></div>`).join("") : '<p class="muted">No drafts yet.</p>';
+    $("outbox").innerHTML = STATE.outbox.length ? STATE.outbox.map((d) => `<div class="ob"><div><b>${esc(d.kind)}</b> to ${esc(d.to.join(", "))} · <span class="muted">${esc(d.status)} · you send it · ${esc(fmt(d.created_at))}</span></div><div><i>${esc(d.subject)}</i></div><pre>${esc(d.body)}</pre></div>`).join("") : '<p class="muted">No drafts yet.</p>';
   }
 
   // ---- What it cost ----

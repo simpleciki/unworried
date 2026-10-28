@@ -370,7 +370,7 @@ describe("D9 — the T1 route end to end through route()", () => {
     expect(r.status).toBe("drafted");
     const outbox = ((await c("GET", "/api/state")).json as { outbox: { kind: string; to: string[]; status: string }[] }).outbox;
     expect(outbox).toEqual([expect.objectContaining({ kind: "handoff", to: ["Jordan"], status: "draft" })]);
-    expect(HTML).toContain("never sent");
+    expect(HTML).toContain("Draft · you send it"); // the assistant has no send step; the parent sends
     expect(Object.keys(sandboxes.get("sess-1", "judge1").outbox)).not.toContain("send");
   });
 
