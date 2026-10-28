@@ -119,7 +119,7 @@ Read it honestly: the scenarios are built to contain the traps the product is fo
 and how often a plain memory falls into those traps, not how often the traps happen in real life. Reading start
 dates fixes the timing traps; what it does not fix is a question read as a decision, and acting when two notes disagree. The first version
 of this eval scored unworried 11/13 because the harness did not pass the values a parent confirms; after that fix
-the same 13 cases were re-run, so 13/13 is not a second, unseen test. 183 unit and end-to-end tests run offline
+the same 13 cases were re-run, so 13/13 is not a second, unseen test. 187 unit and end-to-end tests run offline
 (`npm test`).
 
 ## Run it locally
