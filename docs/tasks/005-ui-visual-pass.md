@@ -27,7 +27,11 @@ and the layout paragraph of `docs/screen.md`. Nothing else changes.
 | ink / mute / line | `#2a2723` / `#8a8277` / `#e6dfd2` | text, secondary text, rules |
 | sage / sage-bg | `#4f7a5d` / `#e5efe6` | in force, OK, primary buttons, "my" chat bubbles |
 | clay | `#b4532a` | needs you, "never sent" stamp, asks |
-| red | `#b3261e` | the strike-through on a replaced sentence; refusals and errors |
+| red | `#b3261e` | the strike-through on a replaced sentence, and real errors only (an API error, a rollback) |
+
+Colour follows meaning (author, 2026-10-27 20:01: too much red reads as "the product is all errors"): a seat
+with nothing decided is grey *not set*; a seat the product will ask about (`UNDATED` …), a `refused` plan and
+the SAMPLE banner are clay — the product asking instead of guessing is the feature, not a fault.
 | UI face | `ui-rounded, system-ui` | everything a person reads as interface |
 | quote face | `ui-serif, Georgia` | a person's own words (card quotes, the chain) |
 | mono | `ui-monospace` | dates in ledger entries, ids, the ledger tail |

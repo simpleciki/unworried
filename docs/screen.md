@@ -43,8 +43,9 @@ vanish.
 ## Panel 2 — What holds today
 
 One row per seat the vocabulary knows (5 priority, 5 movable, 7 weekday pickup backups, working hours),
-resolved at the demo clock from the judge's ledger: state (`PASS` green; `NOT_FOUND`, `UNDATED`, `AMBIGUOUS`,
-`UNRESOLVED`, `FUTURE`, `UNREADABLE` red), the card in effect (quote, value, decided at, by), the overturn
+resolved at the demo clock from the judge's ledger: state (`PASS` green; `NOT_FOUND` grey, "not set" — nothing decided yet;
+`UNDATED`, `AMBIGUOUS`, `UNRESOLVED`, `FUTURE`, `UNREADABLE` clay, "needs you" — the product will ask instead of
+guessing; red is kept for real errors), the card in effect (quote, value, decided at, by), the overturn
 chain as `replaced ‹older quote› (date)`, and for every non-PASS row one sentence saying what the assistant
 will refuse because of it ("Will refuse to draft a handoff for a saturday pickup (conflict reported only) —
 2 arrangement(s) … none can be dated …").

@@ -16,7 +16,7 @@
   .pill { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .8rem; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--mute); font-size:.88rem; }
   .pill::before { content:""; width:.55rem; height:.55rem; border-radius:50%; background:var(--sage); }
   #banner-slot { max-width:1400px; margin:0 auto; padding:0 2rem; }
-  .banner { padding:.6rem .9rem; background:var(--redbg); color:var(--red); border:1px solid var(--red); border-radius:12px; margin-bottom:.6rem; }
+  .banner { padding:.6rem .9rem; background:var(--claybg); color:var(--clay); border:1px solid #e3c2ae; border-radius:12px; margin-bottom:.6rem; }
   button { font:inherit; font-weight:600; padding:.45rem 1.1rem; border:1.5px solid var(--sage); background:var(--sage); color:#fff; border-radius:999px; cursor:pointer; }
   button.quiet { background:transparent; color:var(--ink); border-color:var(--line); font-weight:500; }
   button:disabled { opacity:.45; cursor:not-allowed; }
@@ -71,7 +71,7 @@
   .result { margin-top:.8rem; padding:.7rem .9rem; border-radius:12px; background:var(--paper); font-size:.92rem; }
   .result ul { margin:.3rem 0 0; padding-left:1.2rem; }
   .fine { color:var(--mute); font-size:.82rem; margin-top:.7rem; }
-  .status-refused, .status-rolled_back, .status-needs_attention { color:var(--red); font-weight:600; } .status-ready, .status-executed, .status-drafted, .status-restored { color:var(--sage); font-weight:600; }
+  .status-refused { color:var(--clay); font-weight:600; } .status-rolled_back, .status-needs_attention { color:var(--red); font-weight:600; } .status-ready, .status-executed, .status-drafted, .status-restored { color:var(--sage); font-weight:600; }
   .plan + .plan { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line); }
   .pair { background:var(--paper); border-radius:16px; padding:1rem 1.1rem; margin-top:.8rem; }
 
@@ -106,11 +106,11 @@
   .seat { padding:.45rem 0; border-bottom:1px solid var(--line); font-size:.9rem; }
   .seat .top { display:flex; justify-content:space-between; gap:.8rem; }
   .seat .v { text-align:right; font-weight:600; color:var(--sage); }
-  .seat .v.bad { color:var(--red); }
+  .seat .v.unset { color:var(--mute); font-weight:400; } .seat .v.ask { color:var(--clay); }
   .seat .sub { font-size:.8rem; color:var(--mute); margin-top:.1rem; }
   .seat .sub .q { font-family:var(--serif); font-size:.86rem; color:var(--ink); }
-  .seat .refuse { font-size:.82rem; color:var(--red); margin-top:.2rem; }
-  .badge { font-family:var(--mono); font-size:.7rem; letter-spacing:.04em; border:1.5px solid var(--red); color:var(--red); border-radius:4px; padding:0 .3rem; margin-right:.3rem; font-weight:600; }
+  .seat .refuse { font-size:.82rem; color:var(--clay); margin-top:.2rem; } .seat.unset .refuse { color:var(--mute); }
+  .badge { font-family:var(--mono); font-size:.7rem; letter-spacing:.04em; border:1.5px solid currentColor; border-radius:4px; padding:0 .3rem; margin-right:.3rem; font-weight:600; }
   .spend summary { cursor:pointer; font-weight:600; display:flex; justify-content:space-between; gap:1rem; list-style:none; font-size:1.05rem; }
   .spend summary::-webkit-details-marker { display:none; }
   .spend summary small { color:var(--mute); font-weight:400; font-size:.85rem; }
@@ -340,10 +340,12 @@
       if (!rows.length) return "";
       return `<h3>${title}</h3>` + rows.map((r) => {
         const ok = r.state === "PASS";
-        const v = ok ? esc(r.in_effect ? valueWords(r.topic, r.in_effect.value ?? r.in_effect.quote) : "—") : `<span class="badge">${esc(stateName(r.state))}</span>`;
+        // Grey = nothing decided yet (normal); clay = the product will ask instead of guessing. Red is kept for real errors.
+        const kind = ok ? "" : r.state === "NOT_FOUND" ? "unset" : "ask";
+        const v = ok ? esc(r.in_effect ? valueWords(r.topic, r.in_effect.value ?? r.in_effect.quote) : "—") : `<span class="badge">${esc(stateName(r.state))}</span>${kind === "ask" ? "needs you" : "not set"}`;
         const sub = r.in_effect ? `<div class="sub"><span class="q">“${esc(r.in_effect.quote)}”</span> · decided ${esc(fmt(r.in_effect.decided_at))} by ${esc(r.in_effect.decided_by)}</div>` : "";
         const gone = r.replaced ? `<div class="sub">replaced <s class="gone">‹${esc(r.replaced.quote)}›</s> (${esc(fmt(r.replaced.decided_at))})</div>` : "";
-        return `<div class="seat"><div class="top"><span>${esc(seatLabel(r))}</span><span class="v ${ok ? "" : "bad"}">${v}</span></div>${sub}${gone}${r.refuses ? `<div class="refuse">${esc(r.refuses)}</div>` : ""}</div>`;
+        return `<div class="seat ${kind}"><div class="top"><span>${esc(seatLabel(r))}</span><span class="v ${kind}">${v}</span></div>${sub}${gone}${r.refuses ? `<div class="refuse">${esc(r.refuses)}</div>` : ""}</div>`;
       }).join("");
     }).join("");
   }
