@@ -12,7 +12,7 @@ import type { Lookup, SeatsView } from "../action/seats-view.ts";
 import { undo } from "../action/undo.ts";
 import type { UndoResult } from "../action/undo.ts";
 import type { CalEvent } from "../calendar/port.ts";
-import { confirm, discard } from "../chat/confirm.ts";
+import { confirm, discard, readableCardId } from "../chat/confirm.ts";
 import type { ConfirmEdits } from "../chat/confirm.ts";
 import { explainPlan } from "../chat/explain.ts";
 import { checkCandidate, intake } from "../chat/intake.ts";
@@ -180,7 +180,7 @@ export class Api {
       const value = edits.value !== undefined ? edits.value : c.value;
       const checked = checkCandidate(merged, value, c.text, sb.ledger.vocab, this.m.extras);
       if (checked.unsure.length) throw new ApiError(422, "unsure", `cannot confirm: still unsure about ${checked.unsure.join(", ")}`);
-      const card_id = edits.card_id ?? `card.${candidate_id}`;
+      const card_id = edits.card_id ?? readableCardId(sb.ledger, { ...checked.card, decided_at: null });
       const card: CheckedCard = { card_id, record_id: c.message_id, quote: checked.card.quote, mode: checked.card.mode, topic: checked.card.topic, facets: [checked.card.facet], scope: checked.card.scope, decided_at: "unknown", effective: "unknown", decided_by: checked.card.decided_by, source: "human", result: "PASS" };
       const record: SourceRecord = { record_id: c.message_id, source_type: "client_message", source_version: "v1", text: c.text, author: "me", source_recorded_at: c.sent_at, thread_id: "morgan" };
       sb.ledger.addCard(card, record, [], checked.card.mode === "decides" ? checked.value : null);

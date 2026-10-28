@@ -93,6 +93,8 @@ describe("C2 — questions and suggestions hold no seat", () => {
     expect(store.cards()).toHaveLength(18); // written to the ledger …
     expect(store.graph().cardsOn({ topic: "pickup_backup", facet: "thursday", scope: "kids" }).map((c) => c.card_id)).toEqual(before); // … but on no seat
     if (r1.ok) expect(r1.resolution.in_effect_card).toBe("pickup.oct3");
+    // Readable ids in the seed's style (were card.<uuid>): topic, facet, the day decided; a clash gets ".2".
+    if (r1.ok && r2.ok) expect([r1.card.card_id, r2.card.card_id]).toEqual(["pickup.thursday.oct27", "pickup.thursday.oct27.2"]);
   });
 });
 

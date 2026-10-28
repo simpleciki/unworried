@@ -34,7 +34,7 @@ export function confirm(candidate_id: string, edits: ConfirmEdits, deps: Confirm
     return { ok: false, reason: `cannot confirm: still unsure about ${checked.unsure.join(", ")}`, unsure: checked.unsure, candidate: next };
   }
 
-  const card_id = edits.card_id ?? `card.${candidate_id}`;
+  const card_id = edits.card_id ?? readableCardId(deps.store, checked.card);
   const card: CheckedCard = {
     card_id,
     record_id: c.message_id,
@@ -74,4 +74,18 @@ export function discard(candidate_id: string, deps: { store: LedgerStore }): Can
   const next: Candidate = { ...c, status: "discarded" };
   deps.store.putCandidate(next);
   return next;
+}
+
+// A card id a person can read, in the seed's style ("pickup.oct3", "mov.focus.oct20"): what the card is
+// about and the day it was decided — "pickup.thursday.nov3" — with ".2", ".3" when that name is taken.
+// (Was `card.<uuid>`: 2026-10-27 the author found the ids too long to read.)
+const TOPIC_SHORT: Record<string, string> = { pickup_backup: "pickup", priority: "prio", movable: "mov", working_hours: "hours" };
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+export function readableCardId(store: LedgerStore, card: { topic: string; facet: string; decided_at: string | null }): string {
+  const m = (card.decided_at ?? "").match(/^\d{4}-(\d{2})-(\d{2})/);
+  const when = m ? `${MONTHS[Number(m[1]) - 1]}${Number(m[2])}` : "undated";
+  const base = [TOPIC_SHORT[card.topic] ?? (card.topic || "card"), card.facet.replace(/_/g, "-"), when].filter(Boolean).join(".");
+  let id = base;
+  for (let n = 2; store.card(id); n++) id = `${base}.${n}`;
+  return id;
 }
