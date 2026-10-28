@@ -60,6 +60,9 @@ export type StateView = {
   calendar: { events: CalEvent[] };
   conflicts: ConflictView[];
   plans: Record<string, StoredPlan>;
+  // Every card in the judge's ledger, so the screen can quote the card a plan used even when it is not in
+  // force today (said today, in force from tomorrow), and strike through what it replaced.
+  cards: Record<string, { quote: string; decided_at: string; decided_by: string; effective: string; replaces: string[] }>;
   outbox: Draft[];
   spend: GuardStatus;
 };
@@ -76,6 +79,13 @@ const refusalFor = (row: Omit<SeatRow, "refuses">, reason: string | undefined): 
           : "move anything outside ±2 h of its slot (no working-hours decision)";
   return `Will refuse to ${what}${reason ? ` — ${reason}` : ""}`;
 };
+
+export function cardsView(store: { cards(): { card_id: string; quote: string; decided_at: string; decided_by: string; effective: string }[]; edges(): { old_card: string; new_card: string; relation: string }[] }): StateView["cards"] {
+  const out: StateView["cards"] = {};
+  for (const c of store.cards()) out[c.card_id] = { quote: c.quote, decided_at: c.decided_at, decided_by: c.decided_by, effective: c.effective, replaces: [] };
+  for (const e of store.edges()) if (e.relation === "REPLACES" && out[e.new_card]) out[e.new_card].replaces.push(e.old_card);
+  return out;
+}
 
 // One row per seat the vocabulary knows, resolved at the demo clock.
 export function seatRows(seats: SeatsView, categories: string[], clock: number): SeatRow[] {
@@ -142,6 +152,7 @@ export class Api {
       calendar: { events: await sb.calendar.all() },
       conflicts: await this.conflicts(sb),
       plans: Object.fromEntries(sb.plans),
+      cards: cardsView(sb.ledger),
       outbox: sb.outbox.list(),
       spend: this.m.guard.status(sb.session_id),
     };

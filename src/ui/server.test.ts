@@ -333,6 +333,10 @@ describe("D9 — the T1 route end to end through route()", () => {
     const plan = (await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json as { plan: { status: string; seat_versions: string[] } };
     expect(plan.plan.status).toBe("ready");
     expect(plan.plan.seat_versions).toContain("pickup_backup|thursday|kids=pickup.nov3");
+    // The screen can quote the card the plan used and strike through what it replaced.
+    const after = (await c("GET", "/api/state")).json as { cards: Record<string, { quote: string; replaces: string[] }> };
+    expect(after.cards["pickup.nov3"]).toMatchObject({ quote: "Thursdays I pick up, backup Jordan", replaces: ["pickup.oct3"] });
+    expect(after.cards["pickup.oct3"].quote).toMatch(/^Thursdays I pick up, backup Jordan/);
   });
 
   it("sentence → candidate → confirm (REPLACES) → seat PASS new card → re-plan 11/5 → handoff to Jordan → one draft, never sent", async () => {

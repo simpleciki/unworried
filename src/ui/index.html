@@ -419,33 +419,31 @@
     if (s.kind === "draft_handoff") return `Draft a handoff to <em>${esc(s.draft.to.join(", "))}</em> (never sent)`;
     return `Draft a message to <em>${esc(s.draft.to.join(", "))}</em> with two candidate slots (never sent)`;
   }
-  // Every card the ledger entries can name, by id, from the seat table at the clock.
-  function cardIndex() {
-    const ix = {};
-    for (const r of STATE.seats) { if (r.in_effect) ix[r.in_effect.card_id] = { ...r.in_effect, row: r, live: true }; if (r.replaced) ix[r.replaced.card_id] = { ...r.replaced, row: r, live: false }; }
-    return ix;
-  }
   const entry = (cls, date, tag, quote) => `<div class="entry ${cls}"><div class="d">${esc(date)}</div><div>${tag}<div class="q">${quote}</div></div></div>`;
-  // The "why" for a plan: for each seat it read, the card it used — and what that card replaced, struck through.
+  // The "why" for a plan: for each seat it read, the card it used (quoted from STATE.cards, which holds every
+  // card — including one said today that is in force from tomorrow), what that card replaced, struck through,
+  // and, when a later card replaces it, that one too.
   function chainHtml(plan) {
-    const ix = cardIndex();
+    const C = STATE.cards || {};
     const rank = (sv) => ["pickup_backup", "movable", "priority", "working_hours"].indexOf(sv.split("|")[0]);
-    const parts = [...plan.seat_versions].sort((a, b) => rank(a) - rank(b)).map((sv) => {
+    const sorted = [...plan.seat_versions].sort((a, b) => rank(a) - rank(b));
+    const parts = sorted.map((sv) => {
       const [seat, cardId] = sv.split("=");
       const [topic, facet] = seat.split("|");
       const label = topic === "pickup_backup" ? `${words(facet)} pickup backup` : topic === "working_hours" ? "working hours" : `${words(topic)} · ${words(facet)}`;
-      const k = ix[cardId];
+      const k = C[cardId];
       if (!k) return entry("", "—", `<div class="tag">${esc(label)}</div>`, `<span class="mono" style="font-size:.85rem">${esc(cardId || "nothing in force")}</span>`);
-      const used = entry("", `${md(k.decided_at)}\n${k.decided_by || ""}`, `<div class="tag live"><span class="stamp">Used</span>${esc(label)}</div>`, `“${esc(k.quote)}”`);
-      if (k.live) return used + (k.row.replaced ? entry("dead", `${md(k.row.replaced.decided_at)}`, `<div class="tag dead">Replaced for ${esc(label)} by the one above</div>`, `“${esc(k.row.replaced.quote)}”`) : "");
-      const now = k.row.in_effect;
-      return used + (now ? entry("", `${md(now.decided_at)}\n${now.decided_by}`, `<div class="tag dead">Replaces it${now.effective ? ` from ${esc(md(now.effective))}` : ""}</div>`, `“${esc(now.quote)}”`) : "");
+      let html = entry("", `${md(k.decided_at)}\n${k.decided_by || ""}`, `<div class="tag live"><span class="stamp">Used</span>${esc(label)}${k.effective && k.effective !== k.decided_at && k.effective !== "unknown" ? ` · in force from ${esc(md(k.effective))}` : ""}</div>`, `“${esc(k.quote)}”`);
+      for (const old of k.replaces) if (C[old]) html += entry("dead", md(C[old].decided_at), `<div class="tag dead">Replaced for ${esc(label)} by the one above</div>`, `“${esc(C[old].quote)}”`);
+      const later = Object.values(C).find((c) => c.replaces.includes(cardId));
+      if (later) html += entry("", `${md(later.decided_at)}\n${later.decided_by}`, `<div class="tag dead">Replaces it${later.effective ? ` from ${esc(md(later.effective))}` : ""}</div>`, `“${esc(later.quote)}”`);
+      return html;
     });
     const br = (s) => s.replace(/\n/g, "<br>");
     // The rule that decides who / whether it moves stays in view; the standing rules it also followed fold away.
-    const key = [...plan.seat_versions].sort((a, b) => rank(a) - rank(b)).filter((sv) => /^(pickup_backup|movable)\|/.test(sv)).length || 1;
+    const key = sorted.filter((sv) => /^(pickup_backup|movable)\|/.test(sv)).length || 1;
     const rest = parts.slice(key);
-    const quotes = [...plan.seat_versions].sort((a, b) => rank(a) - rank(b)).slice(key).map((sv) => ix[sv.split("=")[1]]).filter(Boolean).map((k) => `“${esc(k.quote)}”`);
+    const quotes = sorted.slice(key).map((sv) => C[sv.split("=")[1]]).filter(Boolean).map((k) => `“${esc(k.quote)}”`);
     return br(parts.slice(0, key).join("")) + (rest.length ? `<details class="also"><summary>Also followed ${rest.length} standing rule${rest.length > 1 ? "s" : ""}${quotes.length ? `: ${quotes.join(" · ")}` : ""}</summary>${br(rest.join(""))}</details>` : "");
   }
   function planHtml(p) {
