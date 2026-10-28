@@ -4,7 +4,16 @@ One page, four panels, no framework, no CDN: `src/ui/index.html`, served by `src
 (task 005, "A's layout + B's strike-through"): a strip of the conflicts at or after the clock on top; the left
 column is panel 3 with the selected conflict as the hero (plan, the *Why* ledger entries — the card used and
 the card it replaced, struck through in red — the draft under a *never sent* stamp), then the two-week grid,
-the contrast and the outbox; the right column is panels 1, 2 and 4. One column on a phone. A judge logs
+the contrast and the outbox; the right column is panels 1, 2 and 4. One column on a phone.
+
+**Calm by default** (author, 2026-10-27: *an assistant that worries for you should not make you read*): the
+hero's headline says what is already handled ("Jordan can cover it. A note is ready for you to approve." →
+"done — … in your outbox, not sent."); the draft folds to its subject; the deciding rule and the one it
+replaced stay in view, the standing rules it also followed fold under one line; the template explanation, the
+checked prose and `depends on` sit under *How it decided*. Panel 2 shows one line per answer — seats held by
+the same card share a line, seats with nothing decided share one ("No backup set: Sun, Mon, Wed, Fri") — and
+opens a row for its quote, date and refusal sentence. The calendar shows the demo week; *Show the week before
+too* adds 10/26–11/1. Panel 4 shows the three totals; the rest is under *Ledger details*. A judge logs
 in, types one sentence, confirms one card, sees a conflict's plan change, approves it, reads the calendar
 back, undoes it, and sees what it cost — without a key in their hands and without being able to spend more
 than their session budget. The demo clock is fixed at **Tue 2026-11-03 09:00 CST**.

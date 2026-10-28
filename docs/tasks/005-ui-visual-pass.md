@@ -70,3 +70,9 @@ Dark mode is not in scope (judges' browsers vary; one tested look is safer than 
 - Local run with `LLM_ENABLED=false`: log in; the three demo routes of `docs/screen.md` work by clicking, at
   1280 px and at a phone width; screenshots of the hero after Plan → Approve → Undo on 11/5.
 - No new endpoint, no change to any `/api/*` response.
+
+## Addendum 2026-10-27 20:10 — calm by default
+
+Author: *“当前就是细节太多了要读的太多了反而不像‘无忧助手’……尽量让你少操心，能帮你处理好的就帮你处理了还让你觉得安心可靠。”*
+Rule: lead with what is handled; every detail stays one click away, nothing is removed. What changed is in
+`docs/screen.md` ("Calm by default").
