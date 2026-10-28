@@ -91,9 +91,10 @@ export const VALUE_PARSERS: Record<string, (s: string) => unknown> = {
 
 // Code verifies a candidate's fields against the message, the vocabulary and the value shapes. A field
 // that fails is listed in `unsure` (never dropped, never defaulted). Returns the possibly adjusted card.
-export function checkCandidate(card: CandidateCard, value: string | null, text: string, vocab: Vocab, extras: VocabExtras): { card: CandidateCard; value: string | null; unsure: string[]; notes: string[] } {
+export function checkCandidate(card: CandidateCard, value: string | null, text: string, vocab: Vocab, extras: VocabExtras): { card: CandidateCard; value: string | null; unsure: string[]; notes: string[]; settled: string[] } {
   const unsure = new Set<string>();
   const notes: string[] = [];
+  const settled: string[] = []; // fields the code worked out itself: the model's own "unsure" on them no longer applies
   const out: CandidateCard = { ...card };
 
   if (!out.quote || !normaliseText(text).includes(normaliseText(out.quote))) unsure.add("quote");
@@ -129,6 +130,9 @@ export function checkCandidate(card: CandidateCard, value: string | null, text: 
     if (rel?.kind === "date" && (out.effective === null || out.effective.slice(0, 10) !== rel.effective.slice(0, 10))) {
       notes.push(`start date set by the clock${out.effective ? `, not the model (it said ${out.effective.slice(0, 10)})` : ""}: ${rel.reading}`);
       out.effective = rel.effective;
+      settled.push("effective");
+    } else if (rel?.kind === "date") {
+      settled.push("effective"); // the model's date agrees with the clock
     } else if (rel?.kind === "ambiguous") {
       unsure.add("effective");
       notes.push(`"${rel.phrase}" can mean ${rel.readings.join(" or ")} — pick the start date`);
@@ -142,7 +146,7 @@ export function checkCandidate(card: CandidateCard, value: string | null, text: 
     if (out.effective === null) out.effective = out.decided_at;
     value = null;
   }
-  return { card: out, value, unsure: [...unsure], notes };
+  return { card: out, value, unsure: [...unsure], notes, settled };
 }
 
 // The cards a new decision must be related to: the seat's current heads (a replaced card is history) plus
@@ -164,7 +168,7 @@ export async function intake(msg: IntakeMessage, deps: IntakeDeps): Promise<Inta
     const candidates = raws.map((raw) => {
       const base: CandidateCard = { quote: raw.quote, mode: raw.mode, topic: raw.topic, facet: raw.facet, scope: raw.scope, decided_by: raw.decided_by, decided_at: raw.decided_at, effective: raw.effective, source_recorded_at: msg.sent_at };
       const checked = checkCandidate(base, raw.value, msg.text, vocab, deps.extras);
-      const unsure = [...new Set([...checked.unsure, ...raw.unsure.filter((f) => f in base || f === "value")])];
+      const unsure = [...new Set([...checked.unsure, ...raw.unsure.filter((f) => (f in base || f === "value") && !checked.settled.includes(f))])];
       const same_seat = vocab.topics.has(checked.card.topic) && vocab.facets.has(checked.card.facet) && vocab.scopes.has(checked.card.scope) ? seatHeads(graph, { topic: checked.card.topic, facet: checked.card.facet, scope: checked.card.scope }) : [];
       const c: Candidate = {
         candidate_id: newId(),

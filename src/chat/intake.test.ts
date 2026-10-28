@@ -45,6 +45,14 @@ describe("C1 — effective vs decided_at", () => {
     expect(c.note).toMatch(/start date set by the clock, not the model \(it said 2026-11-10\): "from next week" said on Tue 2026-11-03 = Mon 2026-11-09/);
   });
 
+  it("the model's own 'unsure: effective' no longer locks a date the code worked out (Super, hosted, 2026-10-27 22:2x)", async () => {
+    const { guard } = fakeGuard(dir, () => intakeReply([thursdayJordanCard({ quote: "Jordan picks up Theo on Wednesdays", facet: "wednesday", effective: null, unsure: ["effective"] })]));
+    const r = await intake(msg("From next week Jordan picks up Theo on Wednesdays.", "2026-11-03T09:07:00-06:00"), { guard, store, extras, action_id: "a1" });
+    const c = r.candidates[0];
+    expect(c.card.effective).toBe("2026-11-09T00:00:00-06:00");
+    expect(c.unsure).toEqual([]);
+  });
+
   it('"next Thursday" is not guessed: effective is unsure and both readings are named', async () => {
     const { guard } = fakeGuard(dir, () => intakeReply([thursdayJordanCard({ quote: "From next Thursday Jordan picks up Theo", effective: "2026-10-29" })]));
     const r = await intake(msg("From next Thursday Jordan picks up Theo."), { guard, store, extras, action_id: "a1" });
