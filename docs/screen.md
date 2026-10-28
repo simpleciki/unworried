@@ -115,27 +115,29 @@ fallback; `explain` shows the template; everything else works (seats, calendar, 
 wall is off the UI hands intake / relate / explain a *replay guard* that reports "enabled" so the client looks
 in the cache, and whose provider refuses every cache miss — no call leaves the machine, nothing is reserved
 or spent, and the banner still shows the real wall state. So the demo's scripted sentences get their recorded
-replies; any other sentence gets the rule fallback. `NEBIUS_MODEL` must be set to the id the samples were
+replies; any other sentence gets the rule fallback. A reply is looked up first by its exact prompt, then by
+the prompt with every timestamp cut to its date (`dayKey`, `src/llm/cache.ts`): a sentence carries the second
+it was typed, so without the second key a recorded sentence never matched the same words typed by a judge. `NEBIUS_MODEL` must be set to the id the samples were
 recorded with (it is part of the cache key).
 
 ### The three demo routes (use these exact words)
 
 | route | what to do | what the screen shows |
 |---|---|---|
-| (a) T1 | type **`Change of plan: Thursdays I pick up, backup Jordan — Alex is travelling Thursdays now.`** → the card (quote highlighted, value `backup Jordan`, head `pickup.oct3`, proposed REPLACES with the Skeptic's note) → Confirm → panel 2's Thursday row shows the new card and `replaced ‹Thursdays I pick up, backup Jordan› (2026-10-03)` → Plan the 11/5 conflict → `draft a handoff to Jordan (never sent)` → Approve → the outbox draft | Jordan, never Alex; the chain |
+| (a) the wow | **Plan** the 11/5 conflict → "Thursday, Nov 5: Jordan can cover it" → type **`From tomorrow Alex is the backup for Thursday pickups.`** → the card (quote highlighted, value `backup Alex`, effective 11/4 worked out by the clock, head `pickup.oct3`) → choose REPLACES → Confirm (`pickup.thursday.nov3`; the old plan's *Why* now says what replaces it from Nov 4) → **Plan again** → the same hero card: "Alex can cover it", Jordan's 10/03 card struck through → Approve → READY → DRAFTED, the draft to Alex in the outbox under *Draft · you send it* | one sentence changes who is asked; the chain shows why |
 | (b) T3 | Plan is not offered for 10/31 (before the clock); open the Saturday row in panel 2: `UNDATED`, both fridge notes quoted, "Will refuse to draft a handoff for a saturday pickup" → type **`Which Saturday note counts?`** → the assistant answers it is a question (mention), nothing changes | the product asks instead of guessing |
 | (c) T10 | *Show the Monday focus-block contrast* → 10/26 `ready` (move to 11:30–13:30, "Focus blocks may be moved for a meeting", 2026-09-02) · 11/2 `refused` ("the Monday focus block may not be moved", decided 2026-10-20, replacing the September rule) → Approve 10/26 → read-back `v2` → Undo → `v3` | decided ≠ in force; the overturn chain in the refusal |
 
 ### Recording recipe (author only, inside an approval window, in her own terminal)
 
 ```bash
-RECORD_SAMPLES=yes LLM_ENABLED=true NEBIUS_MODEL=<id> npx tsx scripts/record-samples.ts
-npx tsx scripts/spend-status.ts            # reconcile what it cost
+RECORD_SAMPLES=yes LLM_ENABLED=true NEBIUS_MODEL=<id> SPEND_LEDGER_PATH=state/eval-ledger.jsonl npx tsx scripts/record-samples.ts
+SPEND_LEDGER_PATH=state/eval-ledger.jsonl npx tsx scripts/spend-status.ts   # reconcile what it cost
 git add cache/samples && git commit -m "chore(samples): recorded replies for the three demo routes"
 ```
 
 The script refuses without `RECORD_SAMPLES=yes`, with the wall off, or without a model id. It runs route (a)
-through the same API handlers the screen uses, plans (b) and (c), and tees every reply into `cache/samples/`.
+(Plan → sentence → Confirm REPLACES → Plan again) through the same API handlers the screen uses, plans (b) and (c), and tees every reply into `cache/samples/`.
 
 ## What the screen refuses to do
 

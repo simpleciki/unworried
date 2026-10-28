@@ -13,7 +13,10 @@ import { Api } from "../src/ui/api.ts";
 import { LayeredCache, SandboxManager } from "../src/ui/sessions.ts";
 
 export const DEMO_ROUTES = {
-  a_thursday: "Change of plan: Thursdays I pick up, backup Jordan — Alex is travelling Thursdays now.",
+  // Route (a) is the wow: plan 11/5 (Jordan covers), then this sentence, confirm it as REPLACING the 10/03
+  // card, Plan again → Alex covers, the Jordan card struck through. The seed's own 10/03 sentence was the
+  // old route (a); the model rightly called it SAME as the card already there.
+  a_thursday: "From tomorrow Alex is the backup for Thursday pickups.",
   // Route (b) plans the Saturday conflict (no sentence: it must be refused and show both notes).
   // Route (c) plans the two Monday focus blocks (no sentence: the contrast view).
 } as const;
@@ -36,17 +39,21 @@ async function main() {
   const took = () => { const s = ((Date.now() - t0) / 1000).toFixed(1); t0 = Date.now(); return `${s}s`; };
   console.log(`model: ${wall.model}`);
 
-  // (a) T1: the Thursday sentence → card → confirm REPLACES → re-plan 11/5 (explanation recorded).
+  // (a) the wow, in the order the screen is used: Plan 11/5 → the sentence → Confirm (REPLACES) → Plan again.
+  const thuConflict = async () => (await api.conflicts(sb)).find((c) => c.at.startsWith("2026-11-05"));
+  const before = await thuConflict();
+  if (before) { t0 = Date.now(); const e = (await api.plan(sb, before.conflict_id, action())).explanation; console.log(`(a) plan before [${took()}]`, e); }
+  t0 = Date.now();
   const a = await api.chat(sb, DEMO_ROUTES.a_thursday, action());
-  console.log(`(a) intake ${a.mode} [${took()}]: ${a.candidates.length} candidate(s)`, a.candidates.map((c) => ({ unsure: c.unsure, relations: c.relations })));
+  console.log(`(a) intake ${a.mode} [${took()}]: ${a.candidates.length} candidate(s)`, a.candidates.map((c) => ({ card: c.card, value: c.value, unsure: c.unsure, same_seat: c.same_seat, relations: c.relations })));
   const cand = a.candidates[0];
   if (cand && !cand.unsure.length) {
-    const edits = cand.card.effective ? {} : { card: { effective: "2026-10-03" } };
-    api.confirm(sb, cand.candidate_id, { ...edits, card_id: `rec.${cand.candidate_id.slice(0, 8)}` }, action());
-  }
-  const conflicts = await api.conflicts(sb);
-  const thu = conflicts.find((c) => c.at.startsWith("2026-11-05"));
-  if (thu) { t0 = Date.now(); const e = (await api.plan(sb, thu.conflict_id, action())).explanation; console.log(`(a) plan [${took()}]`, e); }
+    // The judge's word on each card already on the seat: REPLACES (the screen's radio), as in the recording.
+    const relations = Object.fromEntries(cand.same_seat.map((id) => [id, "REPLACES" as const]));
+    console.log("(a) confirm", api.confirm(sb, cand.candidate_id, { relations }, action()));
+  } else console.log("(a) NOT confirmed — the card is unsure; fix the sentence or the prompt before recording again");
+  const after = await thuConflict();
+  if (after) { t0 = Date.now(); const e = (await api.plan(sb, after.conflict_id, action())).explanation; console.log(`(a) plan again [${took()}]`, e); }
   // (b) T3: the Saturday conflict → refused → "which one counts?"
   const sat = (await api.conflicts(sb, { all: true })).find((c) => c.at.startsWith("2026-10-31"));
   if (sat) { t0 = Date.now(); const e = (await api.plan(sb, sat.conflict_id, action(), { all: true })).explanation; console.log(`(b) plan [${took()}]`, e); }
