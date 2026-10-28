@@ -1,6 +1,10 @@
 # The screen
 
-One page, four panels, no framework, no CDN: `src/ui/index.html`, served by `src/ui/server.ts`. A judge logs
+One page, four panels, no framework, no CDN: `src/ui/index.html`, served by `src/ui/server.ts`. Layout and look
+(task 005, "A's layout + B's strike-through"): a strip of the conflicts at or after the clock on top; the left
+column is panel 3 with the selected conflict as the hero (plan, the *Why* ledger entries — the card used and
+the card it replaced, struck through in red — the draft under a *never sent* stamp), then the two-week grid,
+the contrast and the outbox; the right column is panels 1, 2 and 4. One column on a phone. A judge logs
 in, types one sentence, confirms one card, sees a conflict's plan change, approves it, reads the calendar
 back, undoes it, and sees what it cost — without a key in their hands and without being able to spend more
 than their session budget. The demo clock is fixed at **Tue 2026-11-03 09:00 CST**.

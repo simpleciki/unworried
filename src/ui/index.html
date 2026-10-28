@@ -5,55 +5,140 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>unworried</title>
 <style>
-  :root { --ink:#1b1b1b; --muted:#666; --line:#ddd; --bg:#fafafa; --card:#fff; --ok:#1d6b3a; --warn:#8a5a00; --bad:#a3141c; --badbg:#fde8e9; --accent:#2b4c7e; }
+  /* Look: docs/tasks/005-ui-visual-pass.md ("A's layout + B's strike-through"). */
+  :root { --paper:#f6f2ea; --card:#fffdf8; --ink:#2a2723; --mute:#8a8277; --line:#e6dfd2; --sage:#4f7a5d; --sagebg:#e5efe6; --clay:#b4532a; --claybg:#f7e6dc; --red:#b3261e; --redbg:#fbe9e7;
+          --ui: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif; --serif: ui-serif, "New York", Georgia, serif; --mono: ui-monospace, "SF Mono", Menlo, monospace; }
   * { box-sizing: border-box; }
-  body { margin:0; font: 15px/1.45 system-ui, sans-serif; color:var(--ink); background:var(--bg); }
-  header { display:flex; flex-wrap:wrap; gap:.6rem 1.2rem; align-items:center; padding:.7rem 1rem; background:#fff; border-bottom:1px solid var(--line); }
-  header h1 { font-size:1.2rem; margin:0; }
-  header .clock, header .who { color:var(--muted); }
-  .pill { padding:.15rem .6rem; border-radius:999px; background:#e6f2ea; color:var(--ok); font-size:.9rem; }
-  .banner { width:100%; padding:.6rem .9rem; background:var(--badbg); color:var(--bad); border:1px solid var(--bad); border-radius:6px; }
-  main { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; padding:1rem; max-width:1400px; margin:0 auto; }
-  section.panel { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:.9rem 1rem; min-width:0; }
-  section.panel h2 { font-size:1.05rem; margin:0 0 .6rem; }
-  section.panel h2 small { color:var(--muted); font-weight:normal; }
-  .err { color:var(--bad); background:var(--badbg); border:1px solid var(--bad); border-radius:6px; padding:.5rem .7rem; margin:.5rem 0; white-space:pre-wrap; }
+  body { margin:0; font: 15px/1.5 var(--ui); color:var(--ink); background:var(--paper); }
+  header { display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; padding:1rem 2rem .6rem; max-width:1400px; margin:0 auto; }
+  header h1 { font-size:1.35rem; margin:0; letter-spacing:-.01em; } header h1 span { color:var(--sage); }
+  header .clock, header .who { color:var(--mute); }
+  .pill { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .8rem; border-radius:999px; background:var(--card); border:1px solid var(--line); color:var(--mute); font-size:.88rem; }
+  .pill::before { content:""; width:.55rem; height:.55rem; border-radius:50%; background:var(--sage); }
+  #banner-slot { max-width:1400px; margin:0 auto; padding:0 2rem; }
+  .banner { padding:.6rem .9rem; background:var(--redbg); color:var(--red); border:1px solid var(--red); border-radius:12px; margin-bottom:.6rem; }
+  button { font:inherit; font-weight:600; padding:.45rem 1.1rem; border:1.5px solid var(--sage); background:var(--sage); color:#fff; border-radius:999px; cursor:pointer; }
+  button.quiet { background:transparent; color:var(--ink); border-color:var(--line); font-weight:500; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  input[type=text], input[type=password] { font:inherit; padding:.45rem .8rem; border:1.5px solid var(--line); border-radius:12px; width:100%; background:#fff; color:var(--ink); }
+  .err { color:var(--red); background:var(--redbg); border:1px solid var(--red); border-radius:10px; padding:.5rem .7rem; margin:.5rem 0; white-space:pre-wrap; }
   .err:empty { display:none; }
-  button { font:inherit; padding:.35rem .8rem; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:6px; cursor:pointer; }
-  button.quiet { background:#fff; color:var(--accent); }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  input[type=text], input[type=password], textarea, select { font:inherit; padding:.35rem .5rem; border:1px solid #bbb; border-radius:6px; width:100%; }
-  table { width:100%; border-collapse:collapse; font-size:.92rem; }
-  th, td { text-align:left; vertical-align:top; padding:.3rem .4rem; border-bottom:1px solid var(--line); }
-  th { color:var(--muted); font-weight:600; }
-  .chat { max-height:320px; overflow:auto; border:1px solid var(--line); border-radius:6px; padding:.5rem; background:#fcfcfc; }
-  .msg { margin:.25rem 0; } .msg.me { color:var(--ink); } .msg.assistant { color:#2f4f6f; }
-  .msg time { color:var(--muted); font-size:.8rem; margin-right:.4rem; }
-  .card { border:1px solid #c9d3e3; border-left:4px solid var(--accent); border-radius:6px; padding:.6rem .8rem; margin:.6rem 0; background:#f7f9fc; }
-  .card .quote mark { background:#fff2a8; }
-  .card dl { display:grid; grid-template-columns: 9rem 1fr; gap:.2rem .6rem; margin:.5rem 0; }
-  .card dt { color:var(--muted); } .card dd { margin:0; }
-  .unsure { color:var(--warn); }
-  .state-PASS { color:var(--ok); } .state-NOT_FOUND, .state-UNDATED, .state-AMBIGUOUS, .state-UNRESOLVED_CONFLICT, .state-FUTURE, .state-UNREADABLE { color:var(--bad); font-weight:600; }
-  .grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:.3rem; font-size:.8rem; }
-  .day { border:1px solid var(--line); border-radius:4px; padding:.25rem; min-height:5rem; background:#fff; }
-  .day h4 { margin:0 0 .2rem; font-size:.78rem; color:var(--muted); }
-  .day .ev { margin:.15rem 0; padding:.1rem .25rem; border-radius:3px; background:#eef2f8; }
-  .day .ev.others { border-left:3px solid var(--warn); }
-  .day .ev.allday { background:#e9f5ee; }
-  .conflict { border:1px solid var(--line); border-radius:6px; padding:.5rem .7rem; margin:.5rem 0; }
-  .plan { margin-top:.5rem; padding:.5rem .7rem; background:#f7f9fc; border-radius:6px; }
-  .removed { text-decoration: line-through; color:var(--muted); }
-  .status-refused, .status-rolled_back, .status-needs_attention { color:var(--bad); font-weight:600; } .status-ready, .status-executed, .status-drafted, .status-restored { color:var(--ok); font-weight:600; }
-  .muted { color:var(--muted); }
-  pre { white-space:pre-wrap; font-size:.85rem; margin:.3rem 0; }
-  #login { max-width:420px; margin:3rem auto; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .grid { grid-template-columns: repeat(2, 1fr); } .card dl { grid-template-columns: 1fr; } }
+  .muted { color:var(--mute); }
+  .mono { font-family:var(--mono); }
+  code { font-family:var(--mono); font-size:.85em; }
+
+  /* conflict strip + two columns */
+  .strip { display:flex; flex-wrap:wrap; gap:.5rem; max-width:1400px; margin:0 auto; padding:0 2rem .9rem; }
+  .chip { text-align:left; font-weight:400; color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:.45rem .85rem; line-height:1.3; font-size:.86rem; }
+  .chip b { display:block; font-size:.92rem; }
+  .chip.on { border-color:var(--sage); box-shadow:0 0 0 3px var(--sagebg); }
+  .chip .st { font-weight:600; }
+  main { display:grid; grid-template-columns: 1.15fr .85fr; gap:1.5rem; padding:0 2rem 2.5rem; max-width:1400px; margin:0 auto; }
+  .col { display:flex; flex-direction:column; gap:1.2rem; min-width:0; }
+  section.panel { background:var(--card); border-radius:20px; padding:1.2rem 1.4rem; min-width:0; box-shadow:0 1px 0 var(--line); }
+  section.panel > h2 { font-size:1.05rem; margin:0 0 .7rem; }
+  section.panel > h2 small { color:var(--mute); font-weight:400; font-size:.85rem; }
+  .lbl { font-size:.75rem; color:var(--mute); text-transform:uppercase; letter-spacing:.07em; margin:1rem 0 .2rem; }
+
+  /* hero */
+  .hero { padding:1.6rem 1.8rem; border-radius:22px; }
+  .kicker { color:var(--clay); font-weight:600; font-size:.9rem; }
+  .hero h2.head { font-size:1.5rem; line-height:1.3; margin:.3rem 0 .8rem; }
+  .evs { display:grid; gap:.35rem; margin:.4rem 0 .6rem; }
+  .ev2 { display:flex; gap:.8rem; align-items:baseline; padding:.45rem .8rem; border-radius:12px; background:var(--paper); }
+  .ev2 .t { font-family:var(--mono); font-size:.82rem; color:var(--mute); min-width:9.5rem; }
+  .steps { list-style:none; padding:0; margin:.2rem 0; font-size:1.12rem; font-weight:600; }
+  .steps li { margin:.2rem 0; } .steps li em { font-style:normal; color:var(--sage); }
+
+  /* ledger entries — B's strike-through */
+  .entry { display:grid; grid-template-columns: 5.6rem 1fr; gap:.1rem 1rem; padding:.7rem 0; border-top:1px solid var(--line); }
+  .entry:last-of-type { border-bottom:1px solid var(--line); }
+  .entry .d { font-family:var(--mono); font-size:.76rem; color:var(--mute); padding-top:.2rem; line-height:1.4; }
+  .entry .q { font-family:var(--serif); font-size:1.06rem; line-height:1.4; }
+  .tag { font-size:.72rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--mute); }
+  .tag.live { color:var(--sage); } .tag.dead { color:var(--red); }
+  .stamp { display:inline-block; border:1.5px solid var(--sage); color:var(--sage); border-radius:6px; padding:0 .4rem; transform:rotate(-2deg); margin-right:.35rem; }
+  .entry.dead .q, s.gone { color:var(--mute); text-decoration:line-through; text-decoration-color:var(--red); text-decoration-thickness:2px; }
+  .draft { border:1.5px dashed var(--line); border-radius:14px; padding:.8rem 1rem; margin-top:.8rem; background:#fff; }
+  .draft .to { font-size:.84rem; color:var(--mute); margin-bottom:.25rem; }
+  .draft .subj { font-weight:600; }
+  .never { float:right; font-family:var(--mono); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--clay); border:1.5px solid var(--clay); border-radius:4px; padding:0 .35rem; transform:rotate(2deg); }
+  .draft pre, .ob pre { white-space:pre-wrap; font:inherit; margin:.3rem 0 0; }
+  .explain { font-size:.92rem; margin-top:.8rem; }
+  .removed { text-decoration:line-through; text-decoration-color:var(--red); color:var(--mute); }
+  .dep { font-family:var(--mono); font-size:.74rem; color:var(--mute); margin-top:.6rem; word-break:break-word; }
+  .actions { display:flex; gap:.6rem; margin-top:1rem; flex-wrap:wrap; }
+  .result { margin-top:.8rem; padding:.7rem .9rem; border-radius:12px; background:var(--paper); font-size:.92rem; }
+  .result ul { margin:.3rem 0 0; padding-left:1.2rem; }
+  .fine { color:var(--mute); font-size:.82rem; margin-top:.7rem; }
+  .status-refused, .status-rolled_back, .status-needs_attention { color:var(--red); font-weight:600; } .status-ready, .status-executed, .status-drafted, .status-restored { color:var(--sage); font-weight:600; }
+  .plan + .plan { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line); }
+  .pair { background:var(--paper); border-radius:16px; padding:1rem 1.1rem; margin-top:.8rem; }
+
+  /* calendar */
+  .grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:.35rem; font-size:.78rem; }
+  .day { border:1px solid var(--line); border-radius:10px; padding:.3rem; min-height:5rem; background:#fff; }
+  .day.today { border-color:var(--sage); box-shadow:0 0 0 2px var(--sagebg); }
+  .day h4 { margin:0 0 .2rem; font-size:.74rem; color:var(--mute); font-weight:600; }
+  .day .ev { margin:.15rem 0; padding:.12rem .3rem; border-radius:6px; background:var(--paper); line-height:1.3; }
+  .day .ev.others { border-left:3px solid var(--clay); }
+  .day .ev.allday { background:var(--sagebg); }
+  .ob { border-top:1px solid var(--line); padding:.7rem 0; }
+
+  /* right column: chat, cards, seats, spend */
+  .chat { max-height:340px; overflow:auto; padding:.2rem; display:flex; flex-direction:column; }
+  .msg { padding:.5rem .8rem; border-radius:16px; margin:.25rem 0; max-width:90%; font-size:.92rem; }
+  .msg.me { background:var(--sagebg); align-self:flex-end; border-bottom-right-radius:6px; }
+  .msg.assistant { background:var(--paper); align-self:flex-start; border-bottom-left-radius:6px; }
+  .msg time { display:block; color:var(--mute); font-size:.72rem; font-family:var(--mono); }
+  #chat-form { display:flex; gap:.5rem; margin-top:.6rem; } #chat-form input { border-radius:999px; }
+  .card { border:1px solid var(--line); border-left:3px solid var(--sage); border-radius:12px; padding:.8rem .9rem; margin:.7rem 0; background:#fff; }
+  .card .quote { font-family:var(--serif); font-size:1.02rem; }
+  .card .quote mark { background:#f3e6b8; color:inherit; padding:0 .1rem; border-radius:3px; }
+  .card dl { display:grid; grid-template-columns: 7.5rem 1fr; gap:.25rem .6rem; margin:.6rem 0; font-size:.88rem; }
+  .card dt { color:var(--mute); } .card dd { margin:0; min-width:0; }
+  .card dd input { padding:.25rem .5rem; border-radius:8px; }
+  .card label { font-size:.88rem; }
+  .head-row { background:var(--paper); border-radius:10px; padding:.5rem .7rem; margin:.4rem 0; font-size:.88rem; }
+  .unsure { color:var(--clay); }
+  .seats h3 { font-size:.75rem; color:var(--mute); text-transform:uppercase; letter-spacing:.07em; margin:.9rem 0 .1rem; font-weight:600; }
+  .seats h3:first-child { margin-top:0; }
+  .seat { padding:.45rem 0; border-bottom:1px solid var(--line); font-size:.9rem; }
+  .seat .top { display:flex; justify-content:space-between; gap:.8rem; }
+  .seat .v { text-align:right; font-weight:600; color:var(--sage); }
+  .seat .v.bad { color:var(--red); }
+  .seat .sub { font-size:.8rem; color:var(--mute); margin-top:.1rem; }
+  .seat .sub .q { font-family:var(--serif); font-size:.86rem; color:var(--ink); }
+  .seat .refuse { font-size:.82rem; color:var(--red); margin-top:.2rem; }
+  .badge { font-family:var(--mono); font-size:.7rem; letter-spacing:.04em; border:1.5px solid var(--red); color:var(--red); border-radius:4px; padding:0 .3rem; margin-right:.3rem; font-weight:600; }
+  .spend summary { cursor:pointer; font-weight:600; display:flex; justify-content:space-between; gap:1rem; list-style:none; font-size:1.05rem; }
+  .spend summary::-webkit-details-marker { display:none; }
+  .spend summary small { color:var(--mute); font-weight:400; font-size:.85rem; }
+  .spend p { font-size:.88rem; margin:.5rem 0; }
+  .meter { font-size:.82rem; color:var(--mute); margin:.5rem 0; }
+  .meter .tr { height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-top:.2rem; }
+  .meter .tr i { display:block; height:100%; background:var(--sage); min-width:2px; }
+  table { width:100%; border-collapse:collapse; font-size:.76rem; font-family:var(--mono); }
+  th, td { text-align:left; vertical-align:top; padding:.25rem .3rem; border-bottom:1px solid var(--line); }
+  th { color:var(--mute); font-weight:500; }
+  .tablewrap { overflow-x:auto; }
+
+  #login { max-width:440px; margin:3rem auto; }
+  #login p label { display:block; font-size:.9rem; color:var(--mute); }
+  @media (max-width: 900px) {
+    header, .strip, main, #banner-slot { padding-left:1rem; padding-right:1rem; }
+    main { grid-template-columns: 1fr; }
+    .hero { padding:1.2rem 1.1rem; } .hero h2.head { font-size:1.25rem; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .card dl { grid-template-columns: 1fr; }
+    .entry { grid-template-columns: 4.6rem 1fr; }
+    .ev2 { flex-direction:column; gap:0; } .ev2 .t { min-width:0; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>unworried</h1>
+  <h1>un<span>worried</span></h1>
   <span class="clock" id="clock"></span>
   <span id="wall"></span>
   <span style="flex:1"></span>
@@ -61,7 +146,7 @@
   <button class="quiet" id="reset" hidden>Reset my sandbox</button>
   <button class="quiet" id="logout" hidden>Log out</button>
 </header>
-<div id="banner-slot" style="padding:0 1rem"></div>
+<div id="banner-slot"></div>
 
 <section id="login" class="panel" hidden>
   <h2>Log in as a judge</h2>
@@ -74,42 +159,59 @@
   <div class="err" id="login-err"></div>
 </section>
 
-<main id="app" hidden>
-  <section class="panel" id="p1">
-    <h2>1 · Tell me what changed <small>— one sentence; nothing counts until you confirm the card</small></h2>
-    <div class="chat" id="chat"></div>
-    <form id="chat-form" style="margin-top:.6rem; display:flex; gap:.5rem">
-      <input type="text" name="text" placeholder="From next Thursday Jordan picks up Theo." required>
-      <button type="submit">Send</button>
-    </form>
-    <div class="err" id="chat-err"></div>
-    <div id="cards"></div>
-  </section>
+<div id="app" hidden>
+  <nav class="strip" id="strip"></nav>
+  <main>
+    <div class="col">
+      <section class="panel hero" id="p3">
+        <div class="err" id="conflicts-err"></div>
+        <div id="hero"></div>
+      </section>
+      <section class="panel">
+        <h2>Your two weeks <small>— 2026-10-26 → 2026-11-08; an orange edge means other people are invited</small></h2>
+        <div class="grid" id="calendar"></div>
+      </section>
+      <section class="panel">
+        <h2>Decided ≠ in force</h2>
+        <p class="muted" style="margin-top:0">Two Monday focus blocks, a week apart, under the rule in force on each day.</p>
+        <button class="quiet" id="contrast">Show the Monday focus-block contrast (10/26 vs 11/2)</button>
+        <div id="contrast-out"></div>
+      </section>
+      <section class="panel">
+        <h2>Outbox <small>— drafts only, never sent</small></h2>
+        <div id="outbox"></div>
+      </section>
+    </div>
 
-  <section class="panel" id="p2">
-    <h2>2 · What holds today <small>— the seat table at the demo clock</small></h2>
-    <div class="err" id="seats-err"></div>
-    <table id="seats"></table>
-  </section>
+    <div class="col">
+      <section class="panel" id="p1">
+        <h2>Tell me what changed <small>— nothing counts until you confirm the card</small></h2>
+        <div class="chat" id="chat"></div>
+        <form id="chat-form">
+          <input type="text" name="text" placeholder="From next Thursday Jordan picks up Theo." required>
+          <button type="submit">Send</button>
+        </form>
+        <div class="err" id="chat-err"></div>
+        <div id="cards"></div>
+      </section>
 
-  <section class="panel" id="p3">
-    <h2>3 · Calendar and conflicts <small>— 2026-10-26 → 2026-11-08; events with other attendees are marked</small></h2>
-    <div class="grid" id="calendar"></div>
-    <h3 style="font-size:.95rem; margin:.8rem 0 .3rem">Conflicts at or after the demo clock</h3>
-    <div class="err" id="conflicts-err"></div>
-    <div id="conflicts"></div>
-    <p><button class="quiet" id="contrast">Show the Monday focus-block contrast (10/26 vs 11/2)</button></p>
-    <div id="contrast-out"></div>
-    <h3 style="font-size:.95rem; margin:.8rem 0 .3rem">Outbox <span class="muted">— drafts only, never sent</span></h3>
-    <div id="outbox"></div>
-  </section>
+      <section class="panel seats" id="p2">
+        <h2>What holds today <small>— at the demo clock</small></h2>
+        <div class="err" id="seats-err"></div>
+        <div id="seats"></div>
+      </section>
 
-  <section class="panel" id="p4">
-    <h2>4 · What it cost <small>— every number is read from the spend ledger file</small></h2>
-    <div class="err" id="spend-err"></div>
-    <div id="spend"></div>
-  </section>
-</main>
+      <section class="panel spend" id="p4">
+        <details open>
+          <summary><span>What it cost</span><small id="spend-sum"></small></summary>
+          <p class="muted">Every number is read from the spend ledger file.</p>
+          <div class="err" id="spend-err"></div>
+          <div id="spend"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+</div>
 
 <script>
 (() => {
@@ -117,7 +219,17 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (iso) => { if (!iso) return "—"; const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/); return m ? `${m[1]} ${m[2]}` : String(iso); };
   const usd = (n) => `$${Number(n ?? 0).toFixed(4)}`;
+  const DOW = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  // Dates are read from the local date written in each ISO string, never re-zoned by the browser.
+  const ymd = (iso) => String(iso || "").slice(0, 10);
+  const dow = (iso) => DOW[new Date(ymd(iso) + "T12:00:00Z").getUTCDay()];
+  const md = (iso) => { const d = ymd(iso); return d ? `${MON[+d.slice(5, 7) - 1]} ${+d.slice(8, 10)}` : "—"; };
+  const hm = (iso) => { const m = String(iso || "").match(/T(\d{2}):(\d{2})/); if (!m) return ""; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? "AM" : "PM"}`; };
+  const words = (s) => String(s ?? "").replace(/_/g, " ");
   let STATE = null;
+  let SELECTED = null; // conflict_id shown in the hero
+  let CONTRAST = []; // plan ids shown in the contrast panel
 
   async function api(method, path, body) {
     const r = await fetch(path, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
@@ -131,7 +243,7 @@
   // ---- login / top bar ----
   async function boot() {
     try { await api("GET", "/api/me"); $("login").hidden = true; $("app").hidden = false; $("logout").hidden = false; $("reset").hidden = false; await refresh(); }
-    catch (e) { $("login").hidden = false; $("app").hidden = true; $("logout").hidden = true; $("reset").hidden = true; if (e.code === "no_accounts") $("login-err").textContent = e.message; }
+    catch (e) { $("login").hidden = false; $("app").hidden = true; $("logout").hidden = true; $("reset").hidden = true; $("who").textContent = ""; $("wall").innerHTML = ""; if (e.code === "no_accounts") $("login-err").textContent = e.message; }
   }
   $("login-form").addEventListener("submit", async (ev) => {
     ev.preventDefault(); showErr("login-err", null);
@@ -139,11 +251,11 @@
     try { await api("POST", "/api/login", { name: f.get("name"), secret: f.get("secret") }); ev.target.reset(); await boot(); } catch (e) { showErr("login-err", e); }
   });
   $("logout").addEventListener("click", async () => { try { await api("POST", "/api/logout"); } finally { STATE = null; await boot(); } });
-  $("reset").addEventListener("click", async () => { if (!confirm("Reset your sandbox to the seed? Your cards, moves and drafts are wiped. Other judges are not affected.")) return; try { await api("POST", "/api/reset"); $("cards").innerHTML = ""; $("contrast-out").innerHTML = ""; await refresh(); } catch (e) { showErr("chat-err", e); } });
+  $("reset").addEventListener("click", async () => { if (!confirm("Reset your sandbox to the seed? Your cards, moves and drafts are wiped. Other judges are not affected.")) return; try { await api("POST", "/api/reset"); $("cards").innerHTML = ""; $("contrast-out").innerHTML = ""; CONTRAST = []; SELECTED = null; await refresh(); } catch (e) { showErr("chat-err", e); } });
 
   async function refresh() {
     STATE = await api("GET", "/api/state");
-    renderTop(); renderChat(); renderSeats(); renderCalendar(); renderConflicts(); renderOutbox(); renderSpend();
+    renderTop(); renderChat(); renderSeats(); renderStrip(); renderHero(); renderCalendar(); renderContrast(); renderOutbox(); renderSpend();
   }
 
   function renderTop() {
@@ -160,10 +272,10 @@
     }
   }
 
-  // ---- panel 1 ----
+  // ---- Tell me what changed ----
   function renderChat() {
     const box = $("chat");
-    box.innerHTML = STATE.chat.map((m) => `<div class="msg ${m.from}"><time>${esc(fmt(m.sent_at))}</time><b>${m.from === "me" ? "me" : "assistant"}:</b> ${esc(m.text)}</div>`).join("");
+    box.innerHTML = STATE.chat.map((m) => `<div class="msg ${m.from === "me" ? "me" : "assistant"}"><time>${esc(fmt(m.sent_at))} · ${m.from === "me" ? "me" : "assistant"}</time>${esc(m.text)}</div>`).join("");
     box.scrollTop = box.scrollHeight;
     for (const c of STATE.candidates) if (!document.querySelector(`[data-cand="${c.candidate_id}"]`)) $("cards").appendChild(cardEl(c));
   }
@@ -184,14 +296,15 @@
     const el = document.createElement("div"); el.className = "card"; el.dataset.cand = c.candidate_id;
     const un = new Set(c.unsure);
     const hi = c.text.includes(c.card.quote) ? esc(c.text).replace(esc(c.card.quote), `<mark>${esc(c.card.quote)}</mark>`) : esc(c.text);
-    const row = (k, v) => `<dt>${k}${un.has(k) ? ' <span class="unsure">unsure</span>' : ""}</dt><dd>${un.has(k) || k === "decided_at" || k === "effective" ? `<input type="text" name="${k}" value="${esc(v ?? "")}" placeholder="${k === "effective" ? "YYYY-MM-DD or ISO with offset" : ""}">` : esc(v ?? "—")}</dd>`;
+    const row = (k, v) => `<dt>${words(k)}${un.has(k) ? ' <span class="unsure">unsure</span>' : ""}</dt><dd>${un.has(k) || k === "decided_at" || k === "effective" ? `<input type="text" name="${k}" value="${esc(v ?? "")}" placeholder="${k === "effective" ? "YYYY-MM-DD or ISO with offset" : ""}">` : esc(v ?? "—")}</dd>`;
     const heads = (c.same_seat || []).map((id) => {
       const rel = (c.relations || {})[id] || "UNRELATED"; const note = (c.relation_notes || {})[id] || "";
       const seatRow = STATE.seats.find((r) => r.in_effect && r.in_effect.card_id === id) || STATE.seats.find((r) => r.cards.includes(id));
       const quote = seatRow && seatRow.in_effect && seatRow.in_effect.card_id === id ? seatRow.in_effect.quote : id;
-      return `<div style="margin:.3rem 0"><div>Currently on this seat: <b>${esc(id)}</b> — "${esc(quote)}"</div><div class="muted">${esc(note)}</div><div>${["REPLACES", "REFINES", "SAME", "UNRELATED"].map((r) => `<label style="margin-right:.6rem"><input type="radio" name="rel-${esc(id)}" value="${r}" ${r === rel ? "checked" : ""}> ${r}</label>`).join("")} <span class="muted">(your choice wins)</span></div></div>`;
+      return `<div class="head-row"><div>Currently on this seat: <b>${esc(id)}</b> — <span style="font-family:var(--serif)">“${esc(quote)}”</span></div><div class="muted">${esc(note)}</div><div>${["REPLACES", "REFINES", "SAME", "UNRELATED"].map((r) => `<label style="margin-right:.6rem"><input type="radio" name="rel-${esc(id)}" value="${r}" ${r === rel ? "checked" : ""}> ${r}</label>`).join("")} <span class="muted">(your choice wins)</span></div></div>`;
     }).join("");
     el.innerHTML = `
+      <div class="tag">A card from what you said</div>
       <div class="quote">${hi}</div>
       ${c.note ? `<div class="unsure" style="margin:.3rem 0">${esc(c.note)}</div>` : ""}
       <dl>${FIELDS.map((k) => row(k, c.card[k])).join("")}
@@ -200,7 +313,7 @@
       </dl>
       <label><input type="checkbox" name="cannot_date"> I cannot date this (the card is recorded undated and will not be ordered against others)</label>
       ${heads}
-      <div style="margin-top:.5rem"><button class="confirm" ${un.size ? "disabled" : ""}>Confirm</button> <button class="quiet discard">Discard</button> ${un.size ? `<span class="unsure">Fill ${[...un].join(", ")} first.</span>` : ""}</div>
+      <div class="actions"><button class="confirm" ${un.size ? "disabled" : ""}>Confirm</button> <button class="quiet discard">Discard</button> ${un.size ? `<span class="unsure">Fill ${[...un].join(", ")} first.</span>` : ""}</div>
       <div class="err"></div>`;
     el.querySelectorAll("input").forEach((i) => i.addEventListener("input", () => { el.querySelector(".confirm").disabled = false; }));
     el.querySelector(".confirm").addEventListener("click", async () => {
@@ -214,68 +327,158 @@
     return el;
   }
 
-  // ---- panel 2 ----
+  // ---- What holds today ----
+  const GROUPS = [["pickup_backup", "Who picks up Theo"], ["priority", "What comes first"], ["movable", "What may move"], ["working_hours", "Working hours"]];
+  const seatLabel = (r) => r.topic === "pickup_backup" ? `${r.facet[0].toUpperCase()}${r.facet.slice(1)} pickup backup` : r.topic === "working_hours" ? "Working hours" : words(r.facet);
+  // The value as a person would say it; anything unexpected is shown as stored.
+  const valueWords = (topic, v) => topic === "movable" && v === "true" ? "may move" : topic === "movable" && v === "false" ? "may not move" : topic === "priority" && /^\d+$/.test(v) ? `rank ${v}` : topic === "working_hours" ? hoursWords(v) : v;
+  const hoursWords = (v) => { try { const h = JSON.parse(v); const t = (x) => `${x.hour}:${String(x.minute).padStart(2, "0")}`; return `${t(h.start)}–${t(h.end)}, ${h.days.map((d) => d.slice(0, 3)).join(" ")}`; } catch { return v; } };
+  const stateName = (s) => (s === "UNRESOLVED_CONFLICT" ? "UNRESOLVED" : s);
   function renderSeats() {
-    const rows = STATE.seats.map((r) => `<tr><td><code>${esc(r.topic)} | ${esc(r.facet)} | ${esc(r.scope)}</code></td><td class="state-${esc(r.state)}">${esc(r.state === "UNRESOLVED_CONFLICT" ? "UNRESOLVED" : r.state)}</td><td>${r.in_effect ? `"${esc(r.in_effect.quote)}"<br><span class="muted">${esc(r.in_effect.value ?? "")} · decided ${esc(fmt(r.in_effect.decided_at))} by ${esc(r.in_effect.decided_by)}</span>` : `<span class="muted">—</span>`}${r.replaced ? `<br><span class="muted">replaced ‹${esc(r.replaced.quote)}› (${esc(fmt(r.replaced.decided_at))})</span>` : ""}</td><td>${r.refuses ? `<span class="unsure">${esc(r.refuses)}</span>` : ""}</td></tr>`).join("");
-    $("seats").innerHTML = `<thead><tr><th>seat</th><th>state</th><th>in effect</th><th>consequence</th></tr></thead><tbody>${rows}</tbody>`;
+    $("seats").innerHTML = GROUPS.map(([topic, title]) => {
+      const rows = STATE.seats.filter((r) => r.topic === topic);
+      if (!rows.length) return "";
+      return `<h3>${title}</h3>` + rows.map((r) => {
+        const ok = r.state === "PASS";
+        const v = ok ? esc(r.in_effect ? valueWords(r.topic, r.in_effect.value ?? r.in_effect.quote) : "—") : `<span class="badge">${esc(stateName(r.state))}</span>`;
+        const sub = r.in_effect ? `<div class="sub"><span class="q">“${esc(r.in_effect.quote)}”</span> · decided ${esc(fmt(r.in_effect.decided_at))} by ${esc(r.in_effect.decided_by)}</div>` : "";
+        const gone = r.replaced ? `<div class="sub">replaced <s class="gone">‹${esc(r.replaced.quote)}›</s> (${esc(fmt(r.replaced.decided_at))})</div>` : "";
+        return `<div class="seat"><div class="top"><span>${esc(seatLabel(r))}</span><span class="v ${ok ? "" : "bad"}">${v}</span></div>${sub}${gone}${r.refuses ? `<div class="refuse">${esc(r.refuses)}</div>` : ""}</div>`;
+      }).join("");
+    }).join("");
   }
 
-  // ---- panel 3 ----
+  // ---- Calendar and conflicts: the strip and the hero ----
+  function renderStrip() {
+    const cs = STATE.conflicts;
+    if (!cs.some((c) => c.conflict_id === SELECTED)) SELECTED = cs.length ? cs[0].conflict_id : null;
+    $("strip").innerHTML = cs.map((c) => {
+      const p = c.plan_id && STATE.plans[c.plan_id];
+      const st = p ? (p.result ? p.result.status : p.plan.status) : "";
+      return `<button class="chip ${c.conflict_id === SELECTED ? "on" : ""}" data-conflict="${esc(c.conflict_id)}"><b>${esc(dow(c.overlap.start).slice(0, 3))} ${esc(md(c.overlap.start))}</b>${esc(c.a.title)} × ${esc(c.b.title)}${st ? ` · <span class="st status-${esc(st)}">${esc(st)}</span>` : ""}</button>`;
+    }).join("");
+    $("strip").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { SELECTED = b.dataset.conflict; renderStrip(); renderHero(); }));
+  }
+  function renderHero() {
+    const cs = STATE.conflicts, out = $("hero");
+    const i = cs.findIndex((c) => c.conflict_id === SELECTED);
+    if (i < 0) { out.innerHTML = '<h2 class="head">Nothing needs you.</h2><p class="muted">No conflicts at or after the demo clock.</p>'; return; }
+    const c = cs[i], p = c.plan_id && STATE.plans[c.plan_id];
+    const ev = (e) => `<div class="ev2"><span class="t">${e.all_day ? "all day" : `${esc(hm(e.start))} – ${esc(hm(e.end))}`}</span><span>${esc(e.title)}${e.attendees && e.attendees.length ? ` <span class="muted">· with ${esc(e.attendees.join(", "))}</span>` : ""}</span></div>`;
+    out.innerHTML = `<div class="conflict" data-conflict="${esc(c.conflict_id)}">
+      <div class="kicker">${esc(dow(c.overlap.start))} needs you · ${i + 1} of ${cs.length}</div>
+      <h2 class="head">${esc(dow(c.overlap.start))}, ${esc(md(c.overlap.start))}: two things on your calendar collide.</h2>
+      <div class="evs">${ev(c.a)}${ev(c.b)}</div>
+      <div class="fine" style="margin-top:0">They overlap ${esc(hm(c.overlap.start))} – ${esc(hm(c.overlap.end))}, counting the buffer kept around each event.</div>
+      ${p ? "" : `<div class="actions"><button class="plan-btn">Plan</button></div><p class="fine">Planning reads what holds today and drafts what to do. Nothing changes until you approve.</p>`}
+      <div class="err"></div>
+      <div class="plan-out">${p ? planHtml(p) : ""}</div></div>`;
+    wirePlan(out.querySelector(".conflict"), c.conflict_id);
+  }
+
+  const evTitle = (id) => (STATE.calendar.events.find((e) => e.event_id === id) || { title: id }).title;
+  function stepWords(s) {
+    if (s.kind === "reschedule_own") return `Move <i>${esc(evTitle(s.target_event_id))}</i> from ${esc(fmt(s.before.start))}–${esc(fmt(s.before.end).slice(11))} to <em>${esc(fmt(s.after.start))}–${esc(fmt(s.after.end).slice(11))}</em>`;
+    if (s.kind === "draft_handoff") return `Draft a handoff to <em>${esc(s.draft.to.join(", "))}</em> (never sent)`;
+    return `Draft a message to <em>${esc(s.draft.to.join(", "))}</em> with two candidate slots (never sent)`;
+  }
+  // Every card the ledger entries can name, by id, from the seat table at the clock.
+  function cardIndex() {
+    const ix = {};
+    for (const r of STATE.seats) { if (r.in_effect) ix[r.in_effect.card_id] = { ...r.in_effect, row: r, live: true }; if (r.replaced) ix[r.replaced.card_id] = { ...r.replaced, row: r, live: false }; }
+    return ix;
+  }
+  const entry = (cls, date, tag, quote) => `<div class="entry ${cls}"><div class="d">${esc(date)}</div><div>${tag}<div class="q">${quote}</div></div></div>`;
+  // The "why" for a plan: for each seat it read, the card it used — and what that card replaced, struck through.
+  function chainHtml(plan) {
+    const ix = cardIndex();
+    const rank = (sv) => ["pickup_backup", "movable", "priority", "working_hours"].indexOf(sv.split("|")[0]);
+    return [...plan.seat_versions].sort((a, b) => rank(a) - rank(b)).map((sv) => {
+      const [seat, cardId] = sv.split("=");
+      const [topic, facet] = seat.split("|");
+      const label = topic === "pickup_backup" ? `${words(facet)} pickup backup` : topic === "working_hours" ? "working hours" : `${words(topic)} · ${words(facet)}`;
+      const k = ix[cardId];
+      if (!k) return entry("", "—", `<div class="tag">${esc(label)}</div>`, `<span class="mono" style="font-size:.85rem">${esc(cardId || "nothing in force")}</span>`);
+      const used = entry("", `${md(k.decided_at)}\n${k.decided_by || ""}`, `<div class="tag live"><span class="stamp">Used</span>${esc(label)}</div>`, `“${esc(k.quote)}”`);
+      if (k.live) return used + (k.row.replaced ? entry("dead", `${md(k.row.replaced.decided_at)}`, `<div class="tag dead">Replaced for ${esc(label)} by the one above</div>`, `“${esc(k.row.replaced.quote)}”`) : "");
+      const now = k.row.in_effect;
+      return used + (now ? entry("", `${md(now.decided_at)}\n${now.decided_by}`, `<div class="tag dead">Replaces it${now.effective ? ` from ${esc(md(now.effective))}` : ""}</div>`, `“${esc(now.quote)}”`) : "");
+    }).join("").replace(/\n/g, "<br>");
+  }
+  function planHtml(p) {
+    const plan = p.plan, ex = p.explanation;
+    const steps = plan.status === "refused" ? `<li class="status-refused">Refused: ${esc(plan.refusal.reason)}</li>` : plan.steps.map((s) => `<li>${stepWords(s)}</li>`).join("");
+    const drafts = plan.status === "refused" ? "" : plan.steps.filter((s) => s.draft).map((s) => `<div class="draft"><div class="to">Draft to ${esc(s.draft.to.join(", "))} <span class="never">never sent</span></div><div class="subj">${esc(s.draft.subject)}</div><pre>${esc(s.draft.body)}</pre></div>`).join("");
+    const prose = ex.mode === "model" ? `<div class="explain"><b>Explanation (model, checked):</b> ${esc(ex.explanation_prose)}</div>${ex.explanation_removed.length ? `<div class="explain muted">not supported by the plan:<br>${ex.explanation_removed.map((r) => `<span class="removed">${esc(r)}</span>`).join("<br>")}</div>` : ""}` : `<div class="fine">explanation: template (${esc(ex.note || "model off")})</div>`;
+    const result = p.result ? `<div class="result"><b>Result:</b> <span class="status-${esc(p.result.status)}">${esc(p.result.status)}</span>${p.result.reason ? ` — ${esc(p.result.reason)}` : ""}<ul>${p.result.steps.map((s) => `<li>step ${s.index}: ${esc(s.outcome)}${s.readback ? ` · read back ${esc(s.readback.version)} ${esc(fmt(s.readback.start))}–${esc(fmt(s.readback.end).slice(11))}` : ""}${s.error ? ` · ${esc(s.error)}` : ""}${s.draft_id ? ` · draft ${esc(s.draft_id)}` : ""}</li>`).join("")}</ul></div>` : "";
+    const undone = p.undo ? `<div class="result"><b>Undo:</b> <span class="status-${esc(p.undo.status)}">${esc(p.undo.status)}</span>${p.undo.reason ? ` — ${esc(p.undo.reason)}` : ""} ${(p.undo.events || []).map((e) => `· ${esc(e.event_id)} ${esc(e.outcome)}${e.readback ? ` (${esc(e.readback.version)} ${esc(fmt(e.readback.start))})` : ""}`).join(" ")}</div>` : "";
+    const buttons = `${plan.status === "ready" && !p.result ? `<button class="approve" data-plan="${esc(plan.plan_id)}">Approve</button>` : ""}${p.result && p.result.undo_token && !p.undo ? `<button class="quiet undo" data-token="${esc(p.result.undo_token)}">Undo</button>` : ""}`;
+    return `<div class="plan" data-plan-id="${esc(plan.plan_id)}">
+      <div class="lbl">The plan · <span class="status-${esc(plan.status)}">${esc(plan.status)}</span> <span class="mono" style="text-transform:none;letter-spacing:0">${esc(plan.plan_id)}</span></div>
+      <ul class="steps">${steps}</ul>
+      <div class="lbl">Why</div>${chainHtml(plan)}${drafts}
+      <div class="explain"><b>Why (template):</b> ${esc(plan.explanation)}</div>${prose}
+      <div class="dep">depends on: ${plan.seat_versions.map(esc).join("; ")}</div>
+      ${result}${undone}
+      ${buttons ? `<div class="actions">${buttons}</div>` : ""}
+      ${plan.status === "ready" && !p.result ? '<p class="fine">Nothing is sent. Your calendar only changes when you approve, and every change can be undone.</p>' : ""}
+      <div class="err"></div></div>`;
+  }
+  function wirePlan(el, conflictId) {
+    const btn = el.querySelector(".plan-btn");
+    if (btn) btn.addEventListener("click", async () => {
+      el.querySelector(".err").textContent = ""; btn.disabled = true;
+      try { const p = await api("POST", "/api/plan", { conflict_id: conflictId }); STATE.plans[p.plan.plan_id] = p; const c = STATE.conflicts.find((x) => x.conflict_id === conflictId); if (c) c.plan_id = p.plan.plan_id; renderStrip(); renderHero(); }
+      catch (e) { el.querySelector(".err").textContent = `${e.code}: ${e.message}`; btn.disabled = false; }
+    });
+    wireActions(el);
+  }
+  function wireActions(el) {
+    el.querySelectorAll(".approve").forEach((b) => b.addEventListener("click", async () => { const box = b.closest(".plan"); b.disabled = true; try { await api("POST", "/api/approve", { plan_id: b.dataset.plan }); await refresh(); } catch (e) { box.querySelector(".err").textContent = `${e.code}: ${e.message}`; b.disabled = false; } }));
+    el.querySelectorAll(".undo").forEach((b) => b.addEventListener("click", async () => { const box = b.closest(".plan"); b.disabled = true; try { await api("POST", "/api/undo", { token: b.dataset.token }); await refresh(); } catch (e) { box.querySelector(".err").textContent = `${e.code}: ${e.message}`; b.disabled = false; } }));
+  }
+
   function renderCalendar() {
     const days = []; const start = new Date("2026-10-26T12:00:00-05:00");
     for (let i = 0; i < 14; i++) { const d = new Date(start.getTime() + i * 86400000); days.push(d.toISOString().slice(0, 10)); }
     // Group by the Chicago date written in each event's start string.
     const by = {}; for (const e of STATE.calendar.events) (by[e.start.slice(0, 10)] ||= []).push(e);
-    $("calendar").innerHTML = days.map((d) => `<div class="day"><h4>${esc(d)}</h4>${(by[d] || []).map((e) => `<div class="ev ${e.attendees.length ? "others" : ""} ${e.all_day ? "allday" : ""}" title="${esc(e.event_id)} ${esc(e.version)}">${e.all_day ? "all day" : esc(e.start.slice(11, 16) + "–" + e.end.slice(11, 16))} ${esc(e.title)}${e.attendees.length ? ` <span class="muted">(with ${esc(e.attendees.join(", "))})</span>` : ""} <span class="muted">${esc(e.version)}</span></div>`).join("")}</div>`).join("");
-  }
-  function renderConflicts() {
-    const out = $("conflicts");
-    if (!STATE.conflicts.length) { out.innerHTML = '<p class="muted">No conflicts at or after the demo clock.</p>'; return; }
-    out.innerHTML = STATE.conflicts.map((c) => `<div class="conflict" data-conflict="${esc(c.conflict_id)}"><div><b>${esc(fmt(c.overlap.start))}</b> — "${esc(c.a.title)}" × "${esc(c.b.title)}"</div><div style="margin-top:.3rem"><button class="plan-btn">Plan</button></div><div class="err"></div><div class="plan-out">${c.plan_id && STATE.plans[c.plan_id] ? planHtml(STATE.plans[c.plan_id]) : ""}</div></div>`).join("");
-    out.querySelectorAll(".conflict").forEach((el) => wirePlan(el, el.dataset.conflict));
-  }
-  function stepWords(s) {
-    if (s.kind === "reschedule_own") return `move <i>${esc(s.target_event_id)}</i> from ${esc(fmt(s.before.start))}–${esc(fmt(s.before.end).slice(11))} to ${esc(fmt(s.after.start))}–${esc(fmt(s.after.end).slice(11))}`;
-    if (s.kind === "draft_handoff") return `draft a handoff to ${esc(s.draft.to.join(", "))} (never sent)`;
-    return `draft a message to ${esc(s.draft.to.join(", "))} with two candidate slots (never sent)`;
-  }
-  function planHtml(p) {
-    const plan = p.plan, ex = p.explanation;
-    const steps = plan.status === "refused" ? `<li class="status-refused">refused: ${esc(plan.refusal.reason)}</li>` : plan.steps.map((s) => `<li>${stepWords(s)}</li>`).join("");
-    const prose = ex.mode === "model" ? `<div><b>Explanation (model, checked):</b> ${esc(ex.explanation_prose)}</div>${ex.explanation_removed.length ? `<div class="muted">not supported by the plan:<br>${ex.explanation_removed.map((r) => `<span class="removed">${esc(r)}</span>`).join("<br>")}</div>` : ""}` : `<div class="muted">explanation: template (${esc(ex.note || "model off")})</div>`;
-    const result = p.result ? `<div style="margin-top:.4rem"><b>Result:</b> <span class="status-${esc(p.result.status)}">${esc(p.result.status)}</span>${p.result.reason ? ` — ${esc(p.result.reason)}` : ""}<ul>${p.result.steps.map((s) => `<li>step ${s.index}: ${esc(s.outcome)}${s.readback ? ` · read back ${esc(s.readback.version)} ${esc(fmt(s.readback.start))}–${esc(fmt(s.readback.end).slice(11))}` : ""}${s.error ? ` · ${esc(s.error)}` : ""}${s.draft_id ? ` · draft ${esc(s.draft_id)}` : ""}</li>`).join("")}</ul></div>` : "";
-    const undone = p.undo ? `<div><b>Undo:</b> <span class="status-${esc(p.undo.status)}">${esc(p.undo.status)}</span>${p.undo.reason ? ` — ${esc(p.undo.reason)}` : ""} ${(p.undo.events || []).map((e) => `· ${esc(e.event_id)} ${esc(e.outcome)}${e.readback ? ` (${esc(e.readback.version)} ${esc(fmt(e.readback.start))})` : ""}`).join(" ")}</div>` : "";
-    const buttons = `${plan.status === "ready" && !p.result ? `<button class="approve" data-plan="${esc(plan.plan_id)}">Approve</button>` : ""} ${p.result && p.result.undo_token && !p.undo ? `<button class="quiet undo" data-token="${esc(p.result.undo_token)}">Undo</button>` : ""}`;
-    return `<div class="plan" data-plan-id="${esc(plan.plan_id)}"><div>Plan <code>${esc(plan.plan_id)}</code> — <span class="status-${esc(plan.status)}">${esc(plan.status)}</span></div><ul>${steps}</ul><div><b>Why (template):</b> ${esc(plan.explanation)}</div>${prose}<div class="muted">depends on: ${plan.seat_versions.map(esc).join("; ")}</div>${result}${undone}<div style="margin-top:.4rem">${buttons}</div><div class="err"></div></div>`;
-  }
-  function wirePlan(el, conflictId, all) {
-    const btn = el.querySelector(".plan-btn");
-    if (btn) btn.addEventListener("click", async () => { el.querySelector(".err").textContent = ""; try { const p = await api("POST", "/api/plan", { conflict_id: conflictId }); el.querySelector(".plan-out").innerHTML = planHtml(p); wireActions(el); STATE.plans[p.plan.plan_id] = p; } catch (e) { el.querySelector(".err").textContent = `${e.code}: ${e.message}`; } });
-    wireActions(el);
-  }
-  function wireActions(el) {
-    el.querySelectorAll(".approve").forEach((b) => b.addEventListener("click", async () => { const box = b.closest(".plan"); try { await api("POST", "/api/approve", { plan_id: b.dataset.plan }); await refresh(); } catch (e) { box.querySelector(".err").textContent = `${e.code}: ${e.message}`; } }));
-    el.querySelectorAll(".undo").forEach((b) => b.addEventListener("click", async () => { const box = b.closest(".plan"); try { await api("POST", "/api/undo", { token: b.dataset.token }); await refresh(); } catch (e) { box.querySelector(".err").textContent = `${e.code}: ${e.message}`; } }));
-  }
-  $("contrast").addEventListener("click", async () => {
-    const out = $("contrast-out"); out.innerHTML = '<p class="muted">planning…</p>';
-    try { const r = await api("GET", "/api/contrast"); out.innerHTML = r.pairs.map((p) => `<div class="conflict">${planHtml(p)}</div>`).join("") || '<p class="muted">no focus-block conflicts</p>'; out.querySelectorAll(".conflict").forEach((el) => wireActions(el)); for (const p of r.pairs) STATE.plans[p.plan.plan_id] = p; } catch (e) { out.innerHTML = `<div class="err">${esc(e.code)}: ${esc(e.message)}</div>`; }
-  });
-  function renderOutbox() {
-    $("outbox").innerHTML = STATE.outbox.length ? STATE.outbox.map((d) => `<div class="conflict"><div><b>${esc(d.kind)}</b> to ${esc(d.to.join(", "))} · <span class="muted">${esc(d.status)}, never sent · ${esc(fmt(d.created_at))}</span></div><div><i>${esc(d.subject)}</i></div><pre>${esc(d.body)}</pre></div>`).join("") : '<p class="muted">No drafts yet.</p>';
-    // Keep contrast plans' result/undo in sync after a refresh.
-    const out = $("contrast-out"); out.querySelectorAll(".plan").forEach((box) => { const p = STATE.plans[box.dataset.planId]; if (p) { box.outerHTML = planHtml(p); } }); out.querySelectorAll(".conflict").forEach((el) => wireActions(el));
+    const today = ymd(STATE.clock);
+    $("calendar").innerHTML = days.map((d) => `<div class="day ${d === today ? "today" : ""}"><h4>${esc(dow(d).slice(0, 3))} ${esc(md(d))}</h4>${(by[d] || []).map((e) => `<div class="ev ${e.attendees.length ? "others" : ""} ${e.all_day ? "allday" : ""}" title="${esc(e.event_id)} ${esc(e.version)}">${e.all_day ? "all day" : esc(e.start.slice(11, 16) + "–" + e.end.slice(11, 16))} ${esc(e.title)}${e.attendees.length ? ` <span class="muted">(with ${esc(e.attendees.join(", "))})</span>` : ""} <span class="muted mono">${esc(e.version)}</span></div>`).join("")}</div>`).join("");
   }
 
-  // ---- panel 4 ----
+  $("contrast").addEventListener("click", async () => {
+    const out = $("contrast-out"); out.innerHTML = '<p class="muted">planning…</p>';
+    try { const r = await api("GET", "/api/contrast"); for (const p of r.pairs) STATE.plans[p.plan.plan_id] = p; CONTRAST = r.pairs.map((p) => p.plan.plan_id); renderContrast(); if (!CONTRAST.length) out.innerHTML = '<p class="muted">no focus-block conflicts</p>'; } catch (e) { out.innerHTML = `<div class="err">${esc(e.code)}: ${esc(e.message)}</div>`; }
+  });
+  // Contrast plans' result/undo stay in sync after a refresh.
+  function renderContrast() {
+    const out = $("contrast-out");
+    const ps = CONTRAST.map((id) => STATE.plans[id]).filter(Boolean);
+    if (!ps.length) return;
+    out.innerHTML = ps.map((p) => `<div class="pair conflict"><div class="kicker">${esc(dow(p.plan.at))}, ${esc(md(p.plan.at))}</div>${planHtml(p)}</div>`).join("");
+    out.querySelectorAll(".conflict").forEach((el) => wireActions(el));
+  }
+
+  function renderOutbox() {
+    $("outbox").innerHTML = STATE.outbox.length ? STATE.outbox.map((d) => `<div class="ob"><div><b>${esc(d.kind)}</b> to ${esc(d.to.join(", "))} · <span class="muted">${esc(d.status)}, never sent · ${esc(fmt(d.created_at))}</span></div><div><i>${esc(d.subject)}</i></div><pre>${esc(d.body)}</pre></div>`).join("") : '<p class="muted">No drafts yet.</p>';
+  }
+
+  // ---- What it cost ----
+  const bar = (label, used, limit) => `<div class="meter">${label} ${usd(used)} of ${usd(limit)}<div class="tr"><i style="width:${limit > 0 ? Math.min(100, (100 * used) / limit).toFixed(1) : 0}%"></i></div></div>`;
   function renderSpend() {
     const sp = STATE.spend, s = sp.state, ses = sp.session;
+    const all = s.ledger.totals ? s.ledger.totals.all : 0;
+    $("spend-sum").textContent = `${usd(ses ? ses.committed_usd : 0)} this session`;
     const lines = sp.last.map((e) => `<tr><td>${esc(fmt(e.at))}</td><td>${esc(e.kind)}</td><td>${esc(e.model || e.limit || "")}</td><td>${e.kind === "reserve" ? `≤${esc(e.input_tokens_bound)} in / ${esc(e.max_tokens)} out` : e.usage ? `${esc(e.usage.input_tokens)} in / ${esc(e.usage.output_tokens)} out` : ""}</td><td>${e.usd !== undefined ? esc(usd(e.usd)) : ""}${e.kind === "settle" ? ` <span class="muted">(actual ${esc(usd(e.actual_usd))}, ${esc(e.booked)})</span>` : ""}${e.reason ? ` <span class="muted">${esc(e.reason)}</span>` : ""}</td></tr>`).join("");
     $("spend").innerHTML = `
       <p>Wall: <b class="${s.enabled ? "status-ready" : "status-refused"}">${s.enabled ? "on" : "off"}</b>${s.reason ? ` — ${esc(s.reason)}` : ""} · model <code>${esc(s.model || "—")}</code> · breaker ${s.breaker.tripped ? `<span class="status-refused">tripped: ${esc(s.breaker.reason)}</span>` : "closed"}</p>
+      ${bar("This session", ses ? ses.committed_usd : 0, ses ? ses.limit_usd : s.limits.sessionUsd)}
+      ${bar("Today, all sessions", sp.day_usd, s.limits.dayUsd)}
+      ${bar("All time", all, s.limits.totalUsd)}
       <p>This session: <b>${ses ? ses.calls : 0}</b> calls · spent <b>${usd(ses ? ses.committed_usd : 0)}</b> · worst case reserved ${usd(ses ? ses.reserved_worst_usd : 0)} · refusals ${ses ? ses.refusals : 0} · session limit ${usd(ses ? ses.limit_usd : s.limits.sessionUsd)}</p>
-      <p>Today, all sessions: ${usd(sp.day_usd)} of ${usd(s.limits.dayUsd)} · all time: ${usd(s.ledger.totals ? s.ledger.totals.all : 0)} of ${usd(s.limits.totalUsd)} · ledger ${esc(s.ledger.path)} ${s.ledger.readable ? "" : '<span class="status-refused">(unreadable — calls disabled)</span>'}</p>
-      <table><thead><tr><th>at</th><th>kind</th><th>model / limit</th><th>tokens</th><th>USD</th></tr></thead><tbody>${lines || '<tr><td colspan="5" class="muted">no ledger lines for this session yet</td></tr>'}</tbody></table>`;
+      <p class="muted">Today, all sessions: ${usd(sp.day_usd)} of ${usd(s.limits.dayUsd)} · all time: ${usd(all)} of ${usd(s.limits.totalUsd)} · ledger <code>${esc(s.ledger.path)}</code> ${s.ledger.readable ? "" : '<span class="status-refused">(unreadable — calls disabled)</span>'}</p>
+      <div class="tablewrap"><table><thead><tr><th>at</th><th>kind</th><th>model / limit</th><th>tokens</th><th>USD</th></tr></thead><tbody>${lines || '<tr><td colspan="5" class="muted">no ledger lines for this session yet</td></tr>'}</tbody></table></div>`;
   }
 
   boot();

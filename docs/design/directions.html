@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>unworried 视觉方向</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, sans-serif; background: #e9e9ec; color: #222; }
+  .switch { position: sticky; top: 0; z-index: 10; display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; padding: .7rem 1rem; background: #111; color: #eee; }
+  .switch button { font: inherit; padding: .35rem .9rem; border-radius: 999px; border: 1px solid #555; background: transparent; color: #eee; cursor: pointer; }
+  .switch button.on { background: #fff; color: #111; }
+  .switch .note { color: #aaa; font-size: .85rem; margin-left: auto; }
+  .why { max-width: 1240px; margin: 1rem auto 0; padding: .8rem 1rem; background: #fff; border-radius: 10px; font-size: .92rem; }
+  .why b { font-size: 1rem; }
+  .frame { max-width: 1240px; margin: 1rem auto 3rem; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.18); }
+  .dir { display: none; } .dir.on { display: block; }
+
+  /* ============ A · Calm — 安心的助理 ============ */
+  .A { --bg:#f6f2ea; --ink:#2a2723; --mute:#8a8277; --line:#e6dfd2; --card:#fffdf8; --sage:#4f7a5d; --sagebg:#e5efe6; --clay:#b4532a; --claybg:#f7e6dc;
+       background: var(--bg); color: var(--ink); font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
+  .A header { display:flex; align-items:center; gap:1rem; padding: 1.1rem 2rem; }
+  .A .logo { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+  .A .logo span { color: var(--sage); }
+  .A .today { color: var(--mute); }
+  .A .budget { margin-left:auto; display:flex; align-items:center; gap:.5rem; font-size:.88rem; color:var(--mute); }
+  .A .budget i { display:inline-block; width:90px; height:6px; border-radius:6px; background:var(--line); position:relative; overflow:hidden; }
+  .A .budget i::after { content:""; position:absolute; inset:0 auto 0 0; width:94%; background:var(--sage); }
+  .A .wrap { display:grid; grid-template-columns: 1.15fr .85fr; gap: 1.5rem; padding: .5rem 2rem 2rem; }
+  .A .hero { background: var(--card); border-radius: 22px; padding: 1.6rem 1.8rem; box-shadow: 0 1px 0 var(--line); }
+  .A .hero .kicker { color: var(--clay); font-weight: 600; font-size:.9rem; }
+  .A .hero h2 { font-size: 1.6rem; line-height:1.25; margin:.3rem 0 1rem; font-weight:700; }
+  .A .hero h2 em { font-style: normal; color: var(--sage); }
+  .A .because { background: var(--bg); border-radius: 14px; padding: .9rem 1rem; margin: .8rem 0; }
+  .A .because .lbl { font-size:.8rem; color:var(--mute); text-transform: uppercase; letter-spacing:.06em; }
+  .A .chain { display:flex; flex-direction:column; gap:.35rem; margin-top:.4rem; }
+  .A .chain .now { font-weight:600; }
+  .A .chain .old { color: var(--mute); text-decoration: line-through; text-decoration-color: #c9bfb1; }
+  .A .draft { border:1.5px dashed var(--line); border-radius:14px; padding: .9rem 1rem; margin-top:.8rem; }
+  .A .draft .to { font-size:.85rem; color:var(--mute); }
+  .A .actions { display:flex; gap:.6rem; margin-top:1.2rem; }
+  .A .btn { font:inherit; border:0; border-radius: 999px; padding:.6rem 1.3rem; background: var(--sage); color:#fff; font-weight:600; }
+  .A .btn.ghost { background: transparent; color: var(--ink); border:1.5px solid var(--line); }
+  .A .fine { color: var(--mute); font-size:.82rem; margin-top:.7rem; }
+  .A aside { display:flex; flex-direction:column; gap:1rem; }
+  .A .box { background: var(--card); border-radius: 18px; padding: 1rem 1.2rem; }
+  .A .box h3 { margin:0 0 .6rem; font-size:1rem; }
+  .A .holds div { display:flex; justify-content:space-between; padding:.4rem 0; border-bottom:1px solid var(--line); font-size:.92rem; }
+  .A .holds div:last-child { border:0; }
+  .A .ok { color: var(--sage); font-weight:600; } .A .ask { color: var(--clay); font-weight:600; }
+  .A .chat .me, .A .chat .ai { padding:.55rem .8rem; border-radius:16px; margin:.35rem 0; max-width: 92%; font-size:.92rem; }
+  .A .chat .me { background: var(--sagebg); margin-left:auto; }
+  .A .chat .ai { background: var(--bg); }
+  .A .chat input { width:100%; font:inherit; border:1.5px solid var(--line); border-radius:999px; padding:.55rem 1rem; background:#fff; margin-top:.5rem; }
+
+  /* ============ B · Ledger — 决定的账本 ============ */
+  .B { --paper:#fbfaf7; --ink:#141414; --mute:#6f6a62; --rule:#1a1a1a; --hair:#d8d3ca; --red:#b3261e; --blue:#1f3a93;
+       background: var(--paper); color: var(--ink); font-family: ui-serif, "New York", Georgia, serif; }
+  .B header { display:flex; align-items:baseline; gap:1.5rem; padding: 1.4rem 2.2rem .8rem; border-bottom: 3px double var(--rule); }
+  .B .logo { font-size: 2rem; font-weight: 700; font-style: italic; letter-spacing: -.02em; }
+  .B .meta { font-family: ui-monospace, Menlo, monospace; font-size: .78rem; color: var(--mute); text-transform: uppercase; letter-spacing: .08em; }
+  .B .meta.r { margin-left:auto; }
+  .B .cols { display:grid; grid-template-columns: 1.3fr 1fr; }
+  .B .col { padding: 1.4rem 2.2rem; }
+  .B .col + .col { border-left: 1px solid var(--hair); }
+  .B h3 { font-family: ui-monospace, Menlo, monospace; font-size:.75rem; letter-spacing:.12em; text-transform: uppercase; color: var(--mute); margin: 0 0 .8rem; font-weight: 500; }
+  .B .entry { display:grid; grid-template-columns: 6.2rem 1fr; gap: .2rem 1rem; padding: .9rem 0; border-top: 1px solid var(--hair); }
+  .B .entry .d { font-family: ui-monospace, Menlo, monospace; font-size:.8rem; color: var(--mute); padding-top:.25rem; }
+  .B .entry .q { font-size: 1.12rem; line-height: 1.4; }
+  .B .entry.dead .q { color: var(--mute); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 1.5px; }
+  .B .entry .tag { font-family: ui-monospace, Menlo, monospace; font-size: .72rem; letter-spacing:.06em; text-transform: uppercase; }
+  .B .entry .tag.live { color: var(--blue); } .B .entry .tag.dead { color: var(--red); }
+  .B .arrow { grid-column: 2; font-family: ui-monospace, Menlo, monospace; font-size: .78rem; color: var(--red); }
+  .B .pull { font-size: 1.55rem; line-height: 1.3; font-style: italic; margin: .2rem 0 1rem; }
+  .B .pull b { font-style: normal; color: var(--blue); }
+  .B .stamp { display:inline-block; font-family: ui-monospace, Menlo, monospace; font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; border: 1.5px solid var(--blue); color: var(--blue); padding: .15rem .5rem; transform: rotate(-2deg); }
+  .B .letter { border: 1px solid var(--hair); background: #fff; padding: 1rem 1.2rem; margin: 1rem 0; font-size: .98rem; }
+  .B .letter .hd { font-family: ui-monospace, Menlo, monospace; font-size:.75rem; color: var(--mute); margin-bottom:.5rem; }
+  .B .btns { display:flex; gap:.6rem; }
+  .B .btn { font-family: ui-monospace, Menlo, monospace; font-size: .82rem; letter-spacing:.06em; text-transform: uppercase; border: 1.5px solid var(--ink); background: var(--ink); color: var(--paper); padding: .55rem 1rem; }
+  .B .btn.o { background: transparent; color: var(--ink); }
+  .B .foot { border-top: 3px double var(--rule); padding: .7rem 2.2rem; font-family: ui-monospace, Menlo, monospace; font-size:.75rem; color: var(--mute); display:flex; gap:2rem; }
+
+  /* ============ C · Control — 技术评委的仪表盘 ============ */
+  .C { --bg:#0c0f0d; --panel:#131815; --line:#232b26; --ink:#e6ece8; --mute:#7f8b84; --green:#76b900; --amber:#f2b33d; --red:#ff5d5d; --cyan:#5ad1e6;
+       background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, sans-serif; }
+  .C header { display:flex; align-items:center; gap:1.2rem; padding: .9rem 1.4rem; border-bottom: 1px solid var(--line); }
+  .C .logo { font-weight: 700; letter-spacing: .02em; }
+  .C .logo::before { content:"●"; color: var(--green); margin-right:.45rem; }
+  .C .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .C .chip { font-family: ui-monospace, Menlo, monospace; font-size:.75rem; padding:.2rem .55rem; border:1px solid var(--line); border-radius: 6px; color: var(--mute); }
+  .C .chip.g { color: var(--green); border-color: rgba(118,185,0,.4); }
+  .C .grid { display:grid; grid-template-columns: 1fr 1.25fr .8fr; gap: 1px; background: var(--line); }
+  .C .p { background: var(--bg); padding: 1rem 1.2rem; min-height: 520px; }
+  .C h3 { margin:0 0 .8rem; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color: var(--mute); font-weight:600; }
+  .C .msg { font-size:.88rem; padding:.45rem .6rem; border-left: 2px solid var(--line); margin:.4rem 0; color: var(--mute); }
+  .C .msg.new { border-color: var(--green); color: var(--ink); background: var(--panel); }
+  .C .msg mark { background: rgba(118,185,0,.22); color: var(--ink); padding: 0 .1rem; }
+  .C .seat { display:grid; grid-template-columns: 1fr auto; gap:.2rem; font-size:.85rem; padding:.5rem 0; border-bottom:1px solid var(--line); }
+  .C .pass { color: var(--green); } .C .bad { color: var(--red); }
+  .C .chainline { grid-column: 1 / -1; font-size:.78rem; color: var(--mute); }
+  .C .chainline s { color: #556; }
+  .C .conf { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1rem; }
+  .C .tl { position: relative; height: 54px; margin: .6rem 0 1rem; }
+  .C .tl .bar { position:absolute; height: 20px; border-radius: 4px; font-size:.72rem; padding: 2px 6px; white-space: nowrap; overflow:hidden; }
+  .C .tl .a { top:0; left: 10%; width: 75%; background: rgba(90,209,230,.18); border:1px solid var(--cyan); color: var(--cyan); }
+  .C .tl .b { top:28px; left: 50%; width: 10%; min-width:120px; background: rgba(242,179,61,.15); border:1px solid var(--amber); color: var(--amber); }
+  .C .tl .x { position:absolute; top:-4px; bottom:-4px; left:50%; width:10%; background: repeating-linear-gradient(45deg, rgba(255,93,93,.18) 0 6px, transparent 6px 12px); border-left:1px dashed var(--red); border-right:1px dashed var(--red); }
+  .C .step { display:flex; gap:.6rem; align-items:flex-start; font-size:.88rem; margin:.5rem 0; }
+  .C .step .n { font-family: ui-monospace, Menlo, monospace; color: var(--green); }
+  .C .dep { font-family: ui-monospace, Menlo, monospace; font-size:.75rem; color: var(--mute); margin-top:.7rem; }
+  .C .btn { font: inherit; font-weight:600; font-size:.88rem; border: 0; border-radius: 8px; padding: .55rem 1.1rem; background: var(--green); color: #0b0f0c; margin-right:.5rem; }
+  .C .btn.o { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .C .meter { margin: .3rem 0 1rem; }
+  .C .meter .row { display:flex; justify-content:space-between; font-size:.8rem; color: var(--mute); }
+  .C .meter .track { height: 6px; background: var(--line); border-radius: 6px; overflow:hidden; margin-top:.25rem; }
+  .C .meter .fill { height: 100%; background: var(--green); }
+  .C .big { font-family: ui-monospace, Menlo, monospace; font-size: 1.9rem; color: var(--ink); }
+  .C .ledger { font-family: ui-monospace, Menlo, monospace; font-size: .72rem; color: var(--mute); line-height: 1.7; }
+  .C .ledger .r { color: var(--amber); } .C .ledger .s { color: var(--green); }
+
+
+  /* ============ AB · A 的布局 + B 的划线（第二稿） ============ */
+  .AB { --bg:#f6f2ea; --ink:#2a2723; --mute:#8a8277; --line:#e6dfd2; --card:#fffdf8; --sage:#4f7a5d; --sagebg:#e5efe6; --clay:#b4532a; --red:#b3261e;
+        --serif: ui-serif, "New York", Georgia, serif; --mono: ui-monospace, "SF Mono", Menlo, monospace;
+        background: var(--bg); color: var(--ink); font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
+  .AB header { display:flex; align-items:center; gap:1rem; padding: 1.1rem 2rem .6rem; }
+  .AB .logo { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+  .AB .logo span { color: var(--sage); }
+  .AB .today { color: var(--mute); }
+  .AB .budget { margin-left:auto; display:flex; align-items:center; gap:.5rem; font-size:.88rem; color:var(--mute); background: var(--card); border-radius:999px; padding:.35rem .8rem; border:1px solid var(--line); }
+  .AB .budget i { display:inline-block; width:80px; height:6px; border-radius:6px; background:var(--line); position:relative; overflow:hidden; }
+  .AB .budget i::after { content:""; position:absolute; inset:0 auto 0 0; width:94%; background:var(--sage); }
+  .AB .days { display:flex; gap:.5rem; padding: 0 2rem .8rem; flex-wrap: wrap; }
+  .AB .day { border:1.5px solid var(--line); background: var(--card); border-radius: 14px; padding:.45rem .8rem; font-size:.86rem; line-height:1.3; }
+  .AB .day b { display:block; font-size:.92rem; }
+  .AB .day.on { border-color: var(--sage); box-shadow: 0 0 0 3px var(--sagebg); }
+  .AB .day .who { color: var(--sage); font-weight:600; } .AB .day .who.ask { color: var(--clay); }
+  .AB .wrap { display:grid; grid-template-columns: 1.15fr .85fr; gap: 1.5rem; padding: .2rem 2rem 2rem; }
+  .AB .hero { background: var(--card); border-radius: 22px; padding: 1.6rem 1.8rem; box-shadow: 0 1px 0 var(--line); }
+  .AB .kicker { color: var(--clay); font-weight: 600; font-size:.9rem; }
+  .AB h2 { font-size: 1.6rem; line-height:1.25; margin:.3rem 0 1.1rem; font-weight:700; }
+  .AB h2 em { font-style: normal; color: var(--sage); }
+  .AB .lbl { font-size:.78rem; color:var(--mute); text-transform: uppercase; letter-spacing:.07em; margin-bottom:.2rem; }
+  /* B 的账本条目，换成 A 的配色 */
+  .AB .entry { display:grid; grid-template-columns: 5.4rem 1fr; gap: .15rem 1rem; padding: .75rem 0; border-top: 1px solid var(--line); }
+  .AB .entry:last-child { border-bottom: 1px solid var(--line); }
+  .AB .entry .d { font-family: var(--mono); font-size:.76rem; color: var(--mute); padding-top:.2rem; line-height:1.4; }
+  .AB .entry .q { font-family: var(--serif); font-size: 1.08rem; line-height: 1.4; }
+  .AB .tag { font-size: .74rem; font-weight:600; letter-spacing:.04em; text-transform: uppercase; }
+  .AB .tag.live { color: var(--sage); } .AB .tag.dead { color: var(--red); } .AB .tag.q0 { color: var(--mute); }
+  .AB .stamp { display:inline-block; border:1.5px solid var(--sage); color: var(--sage); border-radius: 6px; padding: 0 .4rem; transform: rotate(-2deg); margin-right:.35rem; }
+  .AB .entry.dead .q { color: var(--mute); text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 2px; }
+  .AB .entry.dead .q .keep { text-decoration: none; display:inline-block; color: var(--ink); }
+  .AB .entry.mute .q { color: var(--mute); }
+  .AB .draft { border:1.5px dashed var(--line); border-radius:14px; padding: .9rem 1rem; margin-top:1rem; background: #fff; }
+  .AB .draft .to { font-size:.82rem; color:var(--mute); margin-bottom:.3rem; }
+  .AB .draft .to .sent { float:right; font-family: var(--mono); font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color: var(--clay); border:1.5px solid var(--clay); border-radius:4px; padding:0 .35rem; transform: rotate(2deg); }
+  .AB .actions { display:flex; gap:.6rem; margin-top:1.1rem; }
+  .AB .btn { font:inherit; border:0; border-radius: 999px; padding:.6rem 1.3rem; background: var(--sage); color:#fff; font-weight:600; }
+  .AB .btn.ghost { background: transparent; color: var(--ink); border:1.5px solid var(--line); }
+  .AB .fine { color: var(--mute); font-size:.82rem; margin-top:.7rem; }
+  .AB aside { display:flex; flex-direction:column; gap:1rem; }
+  .AB .box { background: var(--card); border-radius: 18px; padding: 1rem 1.2rem; }
+  .AB .box h3 { margin:0 0 .6rem; font-size:1rem; }
+  .AB .chat .me, .AB .chat .ai { padding:.55rem .8rem; border-radius:16px; margin:.35rem 0; max-width: 92%; font-size:.92rem; }
+  .AB .chat .me { background: var(--sagebg); margin-left:auto; }
+  .AB .chat .ai { background: var(--bg); }
+  .AB .chat .card { border:1px solid var(--line); border-radius: 12px; padding:.5rem .7rem; margin:.4rem 0; font-size:.86rem; background:#fff; }
+  .AB .chat input { width:100%; font:inherit; border:1.5px solid var(--line); border-radius:999px; padding:.55rem 1rem; background:#fff; margin-top:.5rem; }
+  .AB .holds .row { display:flex; justify-content:space-between; gap:1rem; padding:.45rem 0; border-bottom:1px solid var(--line); font-size:.92rem; }
+  .AB .holds .row:last-child { border:0; }
+  .AB .holds .v { text-align:right; } .AB .holds .v s { color: var(--mute); text-decoration-color: var(--red); text-decoration-thickness: 1.5px; margin-right:.3rem; font-size:.84rem; }
+  .AB .ok { color: var(--sage); font-weight:600; } .AB .ask { color: var(--clay); font-weight:600; }
+  .AB .cost summary { cursor:pointer; font-weight:600; list-style: none; display:flex; justify-content:space-between; }
+  .AB .cost .m { margin-top:.6rem; font-size:.82rem; color: var(--mute); }
+  .AB .cost .m .tr { height:6px; background: var(--line); border-radius:6px; overflow:hidden; margin-top:.2rem; }
+  .AB .cost .m .tr i { display:block; height:100%; background: var(--sage); }
+  /* 「重」：B 的档案感铺满侧栏 */
+  .AB.heavy .chat .me, .AB.heavy .chat .card .q, .AB.heavy .holds .v b { font-family: var(--serif); }
+  .AB.heavy .box h3, .AB.heavy .hero .lbl { font-family: var(--mono); font-size:.72rem; letter-spacing:.12em; text-transform: uppercase; color: var(--mute); font-weight:500; }
+  .AB.heavy .hero { border-top: 3px double var(--ink); border-radius: 4px 4px 22px 22px; }
+  .AB.heavy .box { border-radius: 6px; border-top: 1px solid var(--ink); }
+  .AB.heavy h2 { font-family: var(--serif); font-weight: 600; }
+  .AB.heavy .chat .card { border-radius: 4px; border-left: 3px solid var(--sage); }
+  .AB:not(.heavy) .chat .card .q { font-style: italic; }
+  @media (max-width: 900px) {
+    .AB .wrap { grid-template-columns: 1fr; padding-left:1rem; padding-right:1rem; }
+    .AB header, .AB .days { flex-wrap: wrap; padding-left: 1rem; padding-right: 1rem; }
+    .AB .entry { grid-template-columns: 4.4rem 1fr; }
+  }
+
+  @media (max-width: 900px) {
+    .A .wrap, .B .cols, .C .grid { grid-template-columns: 1fr; }
+    .B .col + .col { border-left: 0; border-top: 1px solid var(--hair); }
+    .A header, .B header { flex-wrap: wrap; padding-left: 1rem; padding-right: 1rem; }
+    .A .wrap, .B .col { padding-left: 1rem; padding-right: 1rem; }
+    .C .p { min-height: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="switch">
+  <button data-k="AB">A+B 轻</button>
+  <button data-k="ABh">A+B 重</button>
+  <button data-k="A">A · 安心助理</button>
+  <button data-k="B">B · 决定账本</button>
+  <button data-k="C">C · 技术仪表盘</button>
+  <span class="note">同一个时刻：11/5 周四接送撞上从 Denver 回来的航班。内容是演示数据（Morgan / Theo / Jordan / Alex 都是虚构的）</span>
+</div>
+
+<div class="why" id="why"></div>
+
+<div class="frame">
+<!-- ===================== A ===================== -->
+<div class="dir A on" data-k="A">
+  <header>
+    <div class="logo">un<span>worried</span></div>
+    <div class="today">Tuesday, Nov 3 · 9:00 AM</div>
+    <div class="budget">Assistant on <i></i> $0.141 of $0.15 left</div>
+  </header>
+  <div class="wrap">
+    <section class="hero">
+      <div class="kicker">Thursday needs you · 1 of 3</div>
+      <h2>On Thursday you're on the flight home until 7:30.<br>Theo's pickup is at 5:30 — <em>Jordan covers it.</em></h2>
+      <div class="because">
+        <div class="lbl">Why Jordan, not Alex</div>
+        <div class="chain">
+          <div class="now">“Thursdays I pick up, backup Jordan.” — you, Oct 3</div>
+          <div class="old">“Tuesdays and Thursdays Alex picks up Theo.” — you, Sep 8 · Thursday half replaced</div>
+          <div style="color:var(--mute);font-size:.85rem">“yeah Alex gets him Thursdays right?” — Oct 5 · a question, changes nothing</div>
+        </div>
+      </div>
+      <div class="draft">
+        <div class="to">Draft to Jordan · not sent</div>
+        Hi Jordan — I'm flying back from Denver on Thursday and won't make Theo's 5:30 pickup at Oakridge Robotics. Could you get him? Thank you!
+      </div>
+      <div class="actions"><button class="btn">Looks right — save draft</button><button class="btn ghost">Not quite</button></div>
+      <div class="fine">Nothing is sent. Your calendar only changes when you approve, and every change can be undone.</div>
+    </section>
+    <aside>
+      <div class="box chat">
+        <h3>Tell me what changed</h3>
+        <div class="me">yeah Alex gets him Thursdays right?</div>
+        <div class="ai">No — since Oct 3 Thursdays are you, backup Jordan. That replaced Alex. I've noted your question; nothing changed.</div>
+        <input placeholder="From next week Jordan picks up on Tuesdays too…">
+      </div>
+      <div class="box holds">
+        <h3>What holds today</h3>
+        <div><span>Tuesday pickup backup</span><span class="ok">Alex</span></div>
+        <div><span>Thursday pickup backup</span><span class="ok">Jordan</span></div>
+        <div><span>Saturday pickup backup</span><span class="ask">Two notes disagree — ask me</span></div>
+        <div><span>Monday focus block</span><span class="ok">Can't be moved</span></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ===================== B ===================== -->
+<div class="dir B" data-k="B">
+  <header>
+    <div class="logo">unworried</div>
+    <div class="meta">The household record · Vol. 1</div>
+    <div class="meta r">Tue 2026-11-03 09:00 CST · model on · $0.009 spent</div>
+  </header>
+  <div class="cols">
+    <section class="col">
+      <h3>Thursday pickup — who covers</h3>
+      <div class="pull">On Thursday you are in the air at 5:30.<br>The arrangement in force says <b>Jordan</b>.</div>
+      <div class="entry">
+        <div class="d">2026-10-03<br>you</div>
+        <div>
+          <div class="tag live">In force since 10-03</div>
+          <div class="q">“Thursdays I pick up, backup Jordan.”</div>
+        </div>
+      </div>
+      <div class="entry dead">
+        <div class="d">2026-09-08<br>you</div>
+        <div>
+          <div class="tag dead">Thursday half replaced 10-03 · Tuesday still holds</div>
+          <div class="q">“Tuesdays and Thursdays Alex picks up Theo.”</div>
+        </div>
+      </div>
+      <div class="entry">
+        <div class="d">2026-10-05<br>you</div>
+        <div>
+          <div class="tag" style="color:var(--mute)">A question · changes nothing</div>
+          <div class="q" style="color:var(--mute)">“yeah Alex gets him Thursdays right?”</div>
+        </div>
+      </div>
+    </section>
+    <section class="col">
+      <h3>Thu 11-05 · 17:30 — the plan</h3>
+      <span class="stamp">Draft · never sent</span>
+      <div class="letter">
+        <div class="hd">TO Jordan · RE Theo's pickup Thursday</div>
+        Hi Jordan — I'm flying back from Denver on Thursday and won't make Theo's 5:30 pickup at Oakridge Robotics. Could you get him? Thank you!
+      </div>
+      <p style="font-size:.95rem">Because the 10-03 arrangement replaced the Thursday half of the 09-08 one, the draft goes to Jordan. Had you never said it, it would go to Alex — and the assistant would tell you why.</p>
+      <div class="btns"><button class="btn">Approve</button><button class="btn o">Show the chain</button></div>
+      <h3 style="margin-top:1.6rem">Also on the record</h3>
+      <div class="entry"><div class="d">Sat 10-31</div><div class="q" style="font-size:.98rem">Two undated fridge notes disagree on Saturday. <i>Refused — both shown, you decide.</i></div></div>
+      <div class="entry"><div class="d">Mon 11-02</div><div class="q" style="font-size:.98rem">“The Monday focus block may not be moved.” <i>In force from 11-02.</i></div></div>
+    </section>
+  </div>
+  <div class="foot"><span>Decided ≠ in force</span><span>Every change has a version and an undo</span><span>Spend read from the ledger file</span></div>
+</div>
+
+<!-- ===================== C ===================== -->
+<div class="dir C" data-k="C">
+  <header>
+    <div class="logo">unworried</div>
+    <span class="chip mono">demo clock 2026-11-03 09:00 CST</span>
+    <span class="chip g">model on · nvidia/Nemotron-3_5-Lightning</span>
+    <span style="flex:1"></span>
+    <span class="chip">judge1</span>
+  </header>
+  <div class="grid">
+    <section class="p">
+      <h3>Conversation → decisions</h3>
+      <div class="msg">09-08 · Tuesdays and Thursdays Alex picks up Theo.</div>
+      <div class="msg new">10-03 · Change of plan: <mark>Thursdays I pick up, backup Jordan</mark> — Alex is travelling Thursdays now.</div>
+      <div class="msg">10-05 · yeah Alex gets him Thursdays right? <span style="color:var(--amber)">→ mention, no card</span></div>
+      <h3 style="margin-top:1.4rem">Seats at the clock</h3>
+      <div class="seat"><span>pickup_backup · thursday</span><span class="pass mono">PASS</span><span class="chainline">Jordan ← <s>Alex (09-08)</s></span></div>
+      <div class="seat"><span>pickup_backup · tuesday</span><span class="pass mono">PASS</span><span class="chainline">Alex</span></div>
+      <div class="seat"><span>pickup_backup · saturday</span><span class="bad mono">UNDATED</span><span class="chainline">2 fridge notes, no date → will refuse</span></div>
+      <div class="seat"><span>movable · work_focus</span><span class="pass mono">PASS</span><span class="chainline">may not be moved ← <s>may be moved (09-02)</s></span></div>
+    </section>
+    <section class="p">
+      <h3>Conflict · Thu 2026-11-05</h3>
+      <div class="conf">
+        <div class="tl">
+          <div class="x"></div>
+          <div class="bar a">✈ Flight home from Denver 15:45–19:30</div>
+          <div class="bar b">Theo pickup 17:30–18:00</div>
+        </div>
+        <div class="step"><span class="n">01</span><span>travel (rank 1) beats pickup (rank 2) → pickup needs a backup</span></div>
+        <div class="step"><span class="n">02</span><span>thursday backup = <b>Jordan</b> (pickup.oct3 replaces pickup.sept for Thursday)</span></div>
+        <div class="step"><span class="n">03</span><span>draft a handoff to Jordan — <span style="color:var(--amber)">never sent</span></span></div>
+        <div class="dep">depends on: pickup_backup|thursday=pickup.oct3 · priority=prio.travel@v1</div>
+        <div style="margin-top:1rem"><button class="btn">Approve</button><button class="btn o">Undo</button></div>
+      </div>
+      <h3 style="margin-top:1.4rem">Read-back after approve</h3>
+      <div class="ledger">outbox/draft-0007 · to Jordan · status drafted · never sent<br>calendar untouched · seats unchanged since plan ✓</div>
+    </section>
+    <section class="p">
+      <h3>What it cost</h3>
+      <div class="big">$0.0090</div>
+      <div style="color:var(--mute); font-size:.8rem">this session · 3 calls · 0 refusals</div>
+      <div class="meter"><div class="row"><span>session</span><span>$0.009 / $0.15</span></div><div class="track"><div class="fill" style="width:6%"></div></div></div>
+      <div class="meter"><div class="row"><span>today</span><span>$0.04 / $1.00</span></div><div class="track"><div class="fill" style="width:4%"></div></div></div>
+      <div class="meter"><div class="row"><span>hackathon</span><span>$0.31 / $47</span></div><div class="track"><div class="fill" style="width:1%"></div></div></div>
+      <h3 style="margin-top:1.2rem">Ledger tail</h3>
+      <div class="ledger"><span class="r">reserve</span> intake ≤$0.0040<br><span class="s">settle</span>&nbsp; intake $0.0031 actual<br><span class="r">reserve</span> explain ≤$0.0040<br><span class="s">settle</span>&nbsp; explain $0.0029 actual</div>
+    </section>
+  </div>
+</div>
+
+<!-- ===================== AB（第二稿：A 的布局 + B 的划线） ===================== -->
+<div class="dir AB" data-k="AB">
+  <header>
+    <div class="logo">un<span>worried</span></div>
+    <div class="today">Tuesday, Nov 3 · 9:00 AM</div>
+    <div class="budget">Assistant on <i></i> $0.141 of $0.15 left</div>
+  </header>
+  <div class="days">
+    <div class="day"><b>Tue 11/3</b>Flight to Denver · <span class="who">Alex</span></div>
+    <div class="day on"><b>Thu 11/5</b>Flight home · <span class="who">Jordan</span></div>
+    <div class="day"><b>Fri 11/6</b>Design review × demo day · <span class="who ask">see the plan</span></div>
+  </div>
+  <div class="wrap">
+    <section class="hero">
+      <div class="kicker">Thursday needs you · 2 of 3</div>
+      <h2>On Thursday you're on the flight home until 7:30.<br>Theo's pickup is at 5:30 — <em>Jordan covers it.</em></h2>
+      <div class="lbl">Why Jordan, not Alex</div>
+      <div class="entry">
+        <div class="d">Oct 3<br>you</div>
+        <div><div class="tag live"><span class="stamp">In force</span>since Oct 3</div>
+          <div class="q">“Thursdays I pick up, backup Jordan.”</div></div>
+      </div>
+      <div class="entry dead">
+        <div class="d">Sep 8<br>you</div>
+        <div><div class="tag dead">Thursday half replaced Oct 3 · Tuesday still holds</div>
+          <div class="q">“Tuesdays and Thursdays Alex picks up Theo.”</div></div>
+      </div>
+      <div class="entry mute">
+        <div class="d">Oct 5<br>you</div>
+        <div><div class="tag q0">A question · changes nothing</div>
+          <div class="q">“yeah Alex gets him Thursdays right?”</div></div>
+      </div>
+      <div class="draft">
+        <div class="to">Draft to Jordan <span class="sent">never sent</span></div>
+        Hi Jordan — I'm flying back from Denver on Thursday and won't make Theo's 5:30 pickup at Oakridge Robotics. Could you get him? Thank you!
+      </div>
+      <div class="actions"><button class="btn">Looks right — approve</button><button class="btn ghost">Not quite</button></div>
+      <div class="fine">Nothing is sent. Your calendar only changes when you approve, and every change can be undone.</div>
+    </section>
+    <aside>
+      <div class="box chat">
+        <h3>Tell me what changed</h3>
+        <div class="me">yeah Alex gets him Thursdays right?</div>
+        <div class="ai">No — since Oct 3 Thursdays are you, backup Jordan. I've kept your question; nothing changed.</div>
+        <div class="card"><span class="tag q0">Kept as a question</span><div class="q">“yeah Alex gets him Thursdays right?”</div></div>
+        <input placeholder="Tell me what changed…">
+      </div>
+      <div class="box holds">
+        <h3>What holds today</h3>
+        <div class="row"><span>Tuesday pickup backup</span><span class="v"><b class="ok">Alex</b></span></div>
+        <div class="row"><span>Thursday pickup backup</span><span class="v"><s>Alex</s><b class="ok">Jordan</b></span></div>
+        <div class="row"><span>Saturday pickup backup</span><span class="v"><b class="ask">Two notes disagree — ask me</b></span></div>
+        <div class="row"><span>Monday focus block</span><span class="v"><s>may move</s><b class="ok">Can't be moved</b></span></div>
+      </div>
+      <details class="box cost">
+        <summary><span>What it cost</span><span style="color:var(--mute);font-weight:400">$0.009 this session ▸</span></summary>
+        <div class="m">Session $0.009 / $0.15<div class="tr"><i style="width:6%"></i></div></div>
+        <div class="m">Today $0.04 / $1.00<div class="tr"><i style="width:4%"></i></div></div>
+        <div class="m">Hackathon $0.31 / $47<div class="tr"><i style="width:1%"></i></div></div>
+        <div class="m">Read from the spend ledger · 3 calls · Nemotron 3.5 Lightning on Nebius Token Factory</div>
+      </details>
+    </aside>
+  </div>
+</div>
+</div>
+
+<script>
+const WHY = {
+  AB: "<b>A+B 轻（第二稿）</b>：A 的结构（顶部是演示时钟之后的三个冲突、主卡片一次讲一件事、右栏对话和「今天生效的约定」），加上 B 的划线：推翻链用账本条目排，被替代的那句红线划掉，生效的那句盖「In force」章，草稿盖「never sent」章。人说的原话用衬线引号，界面用圆体。花费收进右下角可展开的一栏。<br>和第一稿 A 的差别：「Why」那块从灰字列表变成有日期列的账本条目；侧栏「今天生效」里，被推翻的旧值也划掉留着（Thursday: <s>Alex</s> Jordan）。",
+  ABh: "<b>A+B 重</b>：同一份内容，B 的档案感更多：主卡片顶上加双线、标题改衬线、小标题改等宽大写、侧栏卡片变直角。<br>看哪个更像你要的：轻 = 产品感更强、更亲切；重 = 「这是一份家庭档案」的气质更明显，技术评委更容易记住，但没那么暖。",
+  A: "<b>A · 安心助理</b>：给忙碌家长用的消费级产品。一屏只讲一件事：这周哪一天需要你、交给谁、为什么。账本、版本、花费都收在后面，只在点开时出现。<br>赢在：评委 5 秒看懂「无忧」，最像能上线的产品。代价：技术深度要靠视频和「Why」那一块撑，技术评委第一眼看不到账本。",
+  B: "<b>B · 决定账本</b>：把核心技术（谁替代了谁、决定 ≠ 生效）做成视觉主角。被推翻的话用红线划掉，生效的话盖上蓝章，像一份家庭档案。<br>赢在：一眼看出它和普通日历助理不一样，「推翻链」本身就是记忆点。代价：衬线字体加纸张风格偏文艺；交互感比 A 弱。",
+  C: "<b>C · 技术仪表盘</b>：深色底配 NVIDIA 绿，三栏同时摆出对话、座位、冲突时间轴和花费。每一步推理都能看到。<br>赢在：Nebius / NVIDIA 技术评委最买账，「Token Factory 花了多少」放在最显眼的地方。代价：信息密，普通人觉得是给工程师用的；和一般的 AI 仪表盘撞脸的风险最高。"
+};
+const set = (k) => {
+  const dk = k === "ABh" ? "AB" : k;
+  document.querySelectorAll(".switch button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  document.querySelectorAll(".dir").forEach(d => d.classList.toggle("on", d.dataset.k === dk));
+  document.querySelector(".dir.AB").classList.toggle("heavy", k === "ABh");
+  document.getElementById("why").innerHTML = WHY[k];
+};
+document.querySelectorAll(".switch button").forEach(b => b.addEventListener("click", () => set(b.dataset.k)));
+set("AB");
+</script>
+</body>
+</html>
