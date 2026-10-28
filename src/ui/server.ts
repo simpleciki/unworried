@@ -79,6 +79,11 @@ export function createRouter(deps: RouterDeps): (req: Req) => Promise<Res> {
     };
     try {
       if (req.method === "GET" && path === "/api/state") return done(json(200, await api.state(sb)));
+      if (req.method === "GET" && path === "/api/seats") return done(json(200, api.seatsOn(sb, url.searchParams.get("day") ?? "")));
+      if (req.method === "GET" && path === "/api/ics") {
+        const f = await api.ics(sb, url.searchParams.get("event_id") ?? "");
+        return done({ status: 200, headers: { "content-type": "text/calendar; charset=utf-8", "content-disposition": `attachment; filename="${f.filename}"`, "cache-control": "no-store" }, body: f.text });
+      }
       if (req.method === "GET" && path === "/api/contrast") return done(json(200, await api.contrast(sb, action_id)));
       if (req.method === "POST" && path === "/api/reset") {
         const fresh = deps.sandboxes.reset(session.session_id, session.judge);

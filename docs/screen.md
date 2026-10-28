@@ -51,6 +51,11 @@ vanish.
 
 ## Panel 2 — What holds today
 
+A day slider (9/1–11/15, ticks on the days something was decided or comes into force) re-reads every row
+on another day — `GET /api/seats?day=YYYY-MM-DD`, resolved at noon that day by what has been said up to now; rows
+that differ from today are outlined. On 11/3, after "From tomorrow Alex is the backup…" is confirmed, today still
+reads Jordan and 11/5 reads Alex: decided is not the same as in force (test D15).
+
 One row per seat the vocabulary knows (5 priority, 5 movable, 7 weekday pickup backups, working hours),
 resolved at the demo clock from the judge's ledger: state (`PASS` green; `NOT_FOUND` grey, "not set" — nothing decided yet;
 `UNDATED`, `AMBIGUOUS`, `UNRESOLVED`, `FUTURE`, `UNREADABLE` clay, "needs you" — the product will ask instead of
@@ -146,6 +151,6 @@ The script refuses without `RECORD_SAMPLES=yes`, with the wall off, or without a
 - Plan a conflict before the demo clock from the main list (`in_the_past`; the contrast view is explicit).
 - Approve a plan whose seats changed; approve twice (returns the first result); undo an event changed since.
 - Send anything: drafts stay in the outbox.
-- Read anyone's messages: the parent records the reply to a handoff (*X said yes / said no*). A yes writes `covered_by` on that event (read back, undoable); a covered conflict stays in the list as *handled* and is not planned again until the yes is undone; a no changes nothing on the calendar.
+- Read anyone's messages: the parent records the reply to a handoff (*X said yes / said no*). A yes writes `covered_by` on that event (read back, undoable); a covered conflict stays in the list as *handled* and is not planned again until the yes is undone; a no changes nothing on the calendar. A handled event offers *Add to my calendar (.ics)* — `GET /api/ics?event_id=…`, a download the parent chooses; the sandbox is never synced to anything.
 - Call a model when the wall is off (the replay guard only reads the cache).
 - Compute spend in the browser; hide a refusal in a toast.

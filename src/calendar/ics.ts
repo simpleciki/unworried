@@ -62,6 +62,10 @@ export function toIcs(events: CalEvent[], calendarName = "unworried sandbox"): s
     if (e.location !== undefined) lines.push(`LOCATION:${escapeText(e.location)}`);
     if (e.buffer_before_min !== undefined) lines.push(`X-UNWORRIED-BUFFER-BEFORE:${e.buffer_before_min}`);
     if (e.buffer_after_min !== undefined) lines.push(`X-UNWORRIED-BUFFER-AFTER:${e.buffer_after_min}`);
+    if (e.covered_by !== undefined) {
+      lines.push(`DESCRIPTION:${escapeText(`Covered by ${e.covered_by}: they said yes. (unworried, sandbox ${e.version})`)}`);
+      lines.push(`X-UNWORRIED-COVERED-BY:${escapeText(e.covered_by)}`);
+    }
     lines.push("END:VEVENT");
   }
   lines.push("END:VCALENDAR");

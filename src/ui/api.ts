@@ -11,6 +11,7 @@ import type { ActionPlan } from "../action/plan.ts";
 import type { Lookup, SeatsView } from "../action/seats-view.ts";
 import { undo } from "../action/undo.ts";
 import type { UndoResult } from "../action/undo.ts";
+import { toIcs } from "../calendar/ics.ts";
 import type { CalEvent } from "../calendar/port.ts";
 import { confirm, discard, readableCardId } from "../chat/confirm.ts";
 import type { ConfirmEdits } from "../chat/confirm.ts";
@@ -21,7 +22,7 @@ import type { CheckedCard, Relation, SourceRecord } from "../engine/types.ts";
 import type { Candidate } from "../ledger/store.ts";
 import type { Draft } from "../outbox/drafts.ts";
 import type { GuardStatus } from "../spend/guard.ts";
-import { WEEKDAYS, chicagoIso } from "../time/chicago.ts";
+import { WEEKDAYS, chicagoIso, chicagoLocal } from "../time/chicago.ts";
 import type { JudgeSandbox, SandboxManager, StoredPlan } from "./sessions.ts";
 
 export class ApiError extends Error {
@@ -265,6 +266,25 @@ export class Api {
     for (const p of sb.plans.values()) if (p.result?.undo_token === token) p.undo = r;
     if (r.status === "restored") sb.outbox.markUndone(token);
     return r;
+  }
+
+  // Panel 2's day slider: what holds on another day, by what the parent has said up to now. The cards known
+  // stay the same; only the moment they are resolved at moves (noon that day, Chicago) — decided ≠ in force.
+  seatsOn(sb: JudgeSandbox, day: string): { day: string; at: string; seats: SeatRow[] } {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+    if (!m) throw new ApiError(400, "bad_day", "day must look like 2026-11-05");
+    const at = chicagoLocal(+m[1], +m[2], +m[3], 12);
+    if (Number.isNaN(at) || day < "2026-09-01" || day > "2026-12-31") throw new ApiError(400, "bad_day", "pick a day between 2026-09-01 and 2026-12-31");
+    return { day, at: chicagoIso(at), seats: seatRows(sb.ledger.seatsView(this.m.knownAt()), Object.keys(this.m.extras.categories), at) };
+  }
+
+  // One event as an .ics file the parent can open in their own calendar app (the sandbox is never synced to
+  // anything; this is a download the parent chooses to import).
+  async ics(sb: JudgeSandbox, event_id: string): Promise<{ filename: string; text: string }> {
+    const e = await sb.calendar.get(event_id);
+    if (!e) throw new ApiError(404, "unknown_event", `no event ${event_id} in this sandbox`);
+    sb.trace.write({ session_id: sb.session_id, action: "ui.ics", ref: event_id, outcome: "exported", details: { version: e.version, covered_by: e.covered_by } });
+    return { filename: `unworried-${event_id}-${e.version}.ics`, text: toIcs([e], "unworried") };
   }
 
   // The answer to a handoff the parent sent. They record it (nothing here reads their messages). "yes" →

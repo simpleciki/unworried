@@ -18,7 +18,8 @@
   #banner-slot { max-width:1400px; margin:0 auto; padding:0 2rem; }
   .banner { padding:.6rem .9rem; background:var(--claybg); color:var(--clay); border:1px solid #e3c2ae; border-radius:12px; margin-bottom:.6rem; }
   button { font:inherit; font-weight:600; padding:.45rem 1.1rem; border:1.5px solid var(--sage); background:var(--sage); color:#fff; border-radius:999px; cursor:pointer; }
-  button.quiet { background:transparent; color:var(--ink); border-color:var(--line); font-weight:500; }
+  button.quiet, a.button.quiet { background:transparent; color:var(--ink); border-color:var(--line); font-weight:500; }
+  a.button { display:inline-block; text-decoration:none; font-weight:600; padding:.45rem 1.1rem; border:1.5px solid var(--sage); border-radius:999px; }
   button:disabled { opacity:.45; cursor:not-allowed; }
   input[type=text], input[type=password] { font:inherit; padding:.45rem .8rem; border:1.5px solid var(--line); border-radius:12px; width:100%; background:#fff; color:var(--ink); }
   .err { color:var(--red); background:var(--redbg); border:1px solid var(--red); border-radius:10px; padding:.5rem .7rem; margin:.5rem 0; white-space:pre-wrap; }
@@ -34,6 +35,9 @@
   .chip.on { border-color:var(--sage); box-shadow:0 0 0 3px var(--sagebg); }
   .chip .st { font-weight:600; }
   .kicker.done { color:var(--sage); }
+  .dayslide { margin:.2rem 0 .8rem; } .dayslide input[type=range] { width:100%; accent-color:var(--sage); }
+  .dayslide .row { display:flex; justify-content:space-between; align-items:center; gap:.6rem; font-size:.86rem; }
+  .seat.changed { box-shadow:0 0 0 2px var(--sage); border-radius:12px; }
   .covered { color:var(--sage); font-weight:600; }
   main { display:grid; grid-template-columns: 1.15fr .85fr; gap:1.5rem; padding:0 2rem 2.5rem; max-width:1400px; margin:0 auto; }
   .col { display:flex; flex-direction:column; gap:1.2rem; min-width:0; }
@@ -206,7 +210,9 @@
       </section>
 
       <section class="panel seats" id="p2">
-        <h2>What holds today <small>— at the demo clock</small></h2>
+        <h2 id="seats-title">What holds today <small>— at the demo clock</small></h2>
+        <div class="dayslide"><input type="range" id="seat-day" min="0" max="75" step="1" list="seat-ticks" aria-label="Day to look at"><datalist id="seat-ticks"></datalist>
+          <div class="row"><span class="fine" id="seat-day-label" style="margin:0"></span><button class="quiet" id="seat-today" hidden>Back to today</button></div></div>
         <div class="err" id="seats-err"></div>
         <div id="seats"></div>
       </section>
@@ -266,7 +272,7 @@
 
   async function refresh() {
     STATE = await api("GET", "/api/state");
-    renderTop(); renderChat(); renderSeats(); renderStrip(); renderHero(); renderCalendar(); renderContrast(); renderOutbox(); renderSpend();
+    renderTop(); renderChat(); renderSeats(); if (SEATS_DAY) loadSeatsAt(); renderStrip(); renderHero(); renderCalendar(); renderContrast(); renderOutbox(); renderSpend();
   }
 
   function renderTop() {
@@ -348,18 +354,49 @@
   const cap = (s) => `${String(s)[0].toUpperCase()}${String(s).slice(1)}`;
   // Calm by default (author, 2026-10-27): one line per answer; the quote, the date and what the assistant
   // refuses open on a click. Seats held by the same card share a line; seats with nothing decided share one.
-  function seatHtml(rs) {
+  function seatHtml(rs, changed = false) {
     const r = rs[0], ok = r.state === "PASS";
     // Grey = nothing decided yet (normal); clay = the product will ask instead of guessing. Red is kept for real errors.
     const kind = ok ? "" : "ask";
     const v = ok ? esc(r.in_effect ? valueWords(r.topic, r.in_effect.value ?? r.in_effect.quote) : "—") : `<span class="badge">${esc(stateName(r.state))}</span>needs you`;
     const gone = r.replaced ? `<div class="sub">replaced <s class="gone">‹${esc(r.replaced.quote)}›</s> (${esc(fmt(r.replaced.decided_at))})</div>` : "";
     const body = `${r.in_effect ? `<div class="sub"><span class="q">“${esc(r.in_effect.quote)}”</span> · decided ${esc(fmt(r.in_effect.decided_at))} by ${esc(r.in_effect.decided_by)}</div>` : ""}${r.refuses ? `<div class="refuse">${esc(r.refuses)}</div>` : ""}`;
-    return `<details class="seat ${kind}"><summary><div class="top"><span class="lab">${rs.map((x) => esc(seatLabel(x))).join(" · ")}</span><span class="v ${kind}">${v}</span></div>${gone}</summary>${body}</details>`;
+    return `<details class="seat ${kind} ${changed ? "changed" : ""}"><summary><div class="top"><span class="lab">${rs.map((x) => esc(seatLabel(x))).join(" · ")}</span><span class="v ${kind}">${v}</span></div>${gone}</summary>${body}</details>`;
   }
+  // ---- The day slider: what holds on another day, by what has been said up to now (decided ≠ in force) ----
+  const DAY0 = Date.UTC(2026, 8, 1); // 2026-09-01; the slider runs 76 days, to 11/15
+  const dayAt = (n) => new Date(DAY0 + n * 86400000).toISOString().slice(0, 10);
+  const indexOf = (day) => Math.round((Date.parse(day + "T00:00:00Z") - DAY0) / 86400000);
+  let SEATS_DAY = null, SEATS_AT = null, slideTimer = null; // null = today (the demo clock)
+  async function loadSeatsAt() {
+    if (!SEATS_DAY) { SEATS_AT = null; renderSeats(); return; }
+    try { const r = await api("GET", `/api/seats?day=${SEATS_DAY}`); if (r.day === SEATS_DAY) { SEATS_AT = r.seats; renderSeats(); } showErr("seats-err", null); } catch (e) { showErr("seats-err", e); }
+  }
+  function renderDaySlider() {
+    const today = ymd(STATE.clock), day = SEATS_DAY || today, s = $("seat-day");
+    if (document.activeElement !== s) s.value = String(indexOf(day));
+    // Ticks on the days something was decided or comes into force.
+    const marks = new Set(); for (const c of Object.values(STATE.cards || {})) for (const d of [c.decided_at, c.effective]) if (d && d !== "unknown" && indexOf(ymd(d)) >= 0 && indexOf(ymd(d)) <= 75) marks.add(indexOf(ymd(d)));
+    $("seat-ticks").innerHTML = [...marks].map((n) => `<option value="${n}"></option>`).join("");
+    $("seat-day-label").textContent = SEATS_DAY ? `${dow(day)}, ${md(day)} — what you have said up to today, as it applies that day` : `${dow(day)}, ${md(day)} · today. Drag to see what holds on another day.`;
+    $("seat-today").hidden = !SEATS_DAY;
+    $("seats-title").innerHTML = SEATS_DAY ? `What holds on ${esc(dow(day))}, ${esc(md(day))} <small>— decided is not the same as in force</small>` : `What holds today <small>— at the demo clock</small>`;
+  }
+  $("seat-day").addEventListener("input", () => {
+    const day = dayAt(+$("seat-day").value);
+    SEATS_DAY = day === ymd(STATE.clock) ? null : day;
+    renderDaySlider();
+    clearTimeout(slideTimer); slideTimer = setTimeout(loadSeatsAt, 120);
+  });
+  $("seat-today").addEventListener("click", () => { SEATS_DAY = null; renderDaySlider(); loadSeatsAt(); });
+
   function renderSeats() {
+    renderDaySlider();
+    const ALL = SEATS_AT || STATE.seats;
+    const TODAY = Object.fromEntries(STATE.seats.map((x) => [x.key, x.in_effect ? x.in_effect.card_id : x.state]));
+    const changed = (x) => Boolean(SEATS_AT) && TODAY[x.key] !== (x.in_effect ? x.in_effect.card_id : x.state);
     $("seats").innerHTML = GROUPS.map(([topic, title]) => {
-      const rows = STATE.seats.filter((r) => r.topic === topic);
+      const rows = ALL.filter((r) => r.topic === topic);
       if (!rows.length) return "";
       const unset = rows.filter((r) => r.state === "NOT_FOUND");
       const lines = [];
@@ -367,11 +404,11 @@
       const kept = rows.filter((x) => x.state !== "NOT_FOUND").sort((x, y) => topic === "priority" ? Number(x.in_effect?.value ?? 99) - Number(y.in_effect?.value ?? 99) : 0);
       for (const r of kept) {
         const simple = (x) => x.state === "PASS" && x.in_effect && !x.replaced;
-        const same = simple(r) && lines.find((l) => simple(l[0]) && l[0].in_effect.card_id === r.in_effect.card_id);
+        const same = simple(r) && !changed(r) && lines.find((l) => simple(l[0]) && !changed(l[0]) && l[0].in_effect.card_id === r.in_effect.card_id);
         if (same) same.push(r); else lines.push([r]);
       }
       const none = unset.length ? `<details class="seat unset"><summary><div class="top"><span class="lab">${topic === "pickup_backup" ? `No backup set: ${unset.map((r) => esc(cap(r.facet).slice(0, 3))).join(", ")}` : `Not set: ${unset.map((r) => esc(seatLabel(r))).join(", ")}`}</span><span class="v unset"><span class="badge">NOT_FOUND</span>I'll ask, not guess</span></div></summary>${unset.map((r) => `<div class="refuse">${esc(r.refuses)}</div>`).join("")}</details>` : "";
-      return `<h3>${title}</h3>${lines.map(seatHtml).join("")}${none}`;
+      return `<h3>${title}</h3>${lines.map((l) => seatHtml(l, changed(l[0]))).join("")}${none}`;
     }).join("");
   }
 
@@ -427,12 +464,15 @@
     const e = c.a.covered_by ? c.a : c.b;
     return `<em>covered</em> — ${esc(e.covered_by)} said yes and has ${esc(e.title)}. Your calendar says so (${esc(e.version)}).`;
   }
+  const coveredBy = (d) => STATE.conflicts.find((x) => x.covered_by && x.plan_id === d.plan_id);
+  // The handled event as a file for the parent's own calendar app (a download they choose; nothing is synced).
+  const icsLink = (c) => { const e = c.a.covered_by ? c.a : c.b; return `<a class="button quiet" href="/api/ics?event_id=${encodeURIComponent(e.event_id)}" download>Add to my calendar (.ics)</a>`; };
   // The answer to a handoff: the parent sent it and records what came back. Nothing here reads messages.
   function replyHtml(d) {
     if (!d) return "";
     const who = esc(d.to.join(", "));
     if (!d.reply) return `<div class="actions"><button class="reply" data-draft="${esc(d.draft_id)}" data-answer="yes">${who} said yes</button><button class="quiet reply" data-draft="${esc(d.draft_id)}" data-answer="no">${who} said no</button></div><p class="fine">You sent the note; tell me what ${who} answered. I never read or send your messages. A yes marks the pickup as covered on your calendar, and you can undo it.</p>`;
-    if (d.reply.answer === "yes" && d.reply.undo_token && !d.reply.undone) return `<div class="actions"><button class="quiet undo" data-token="${esc(d.reply.undo_token)}">Undo</button></div>`;
+    if (d.reply.answer === "yes" && d.reply.undo_token && !d.reply.undone) return `<div class="actions">${coveredBy(d) ? icsLink(coveredBy(d)) : ""}<button class="quiet undo" data-token="${esc(d.reply.undo_token)}">Undo</button></div>`;
     return "";
   }
   function wireReplies(el) {

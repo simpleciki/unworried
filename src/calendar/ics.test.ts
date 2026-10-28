@@ -30,6 +30,7 @@ function parseIcs(text: string): CalEvent[] {
       if (get("LOCATION") !== undefined) e.location = unescapeText(get("LOCATION")!);
       if (get("X-UNWORRIED-BUFFER-BEFORE") !== undefined) e.buffer_before_min = +get("X-UNWORRIED-BUFFER-BEFORE")!;
       if (get("X-UNWORRIED-BUFFER-AFTER") !== undefined) e.buffer_after_min = +get("X-UNWORRIED-BUFFER-AFTER")!;
+      if (get("X-UNWORRIED-COVERED-BY") !== undefined) e.covered_by = unescapeText(get("X-UNWORRIED-COVERED-BY")!);
       // DTSTART/DTEND in UTC must be the same instants.
       if (!e.all_day) {
         expect(utc(get("DTSTART")!)).toBe(Date.parse(e.start));

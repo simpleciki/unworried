@@ -441,6 +441,12 @@ describe("D14 — the loop closes: the parent records the reply to a handoff", (
     expect(st.chat.at(-1)!.text).toMatch(/^✓ Jordan said yes\. .* covered by Jordan — calendar read back v2/);
     expect((await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json).toMatchObject({ error: "covered" });
     expect((await c("POST", "/api/reply", { draft_id: draft.draft_id, answer: "yes" })).json).toMatchObject({ error: "already_replied" });
+    const ics = await c("GET", `/api/ics?event_id=${event_id}`);
+    expect(ics.status).toBe(200);
+    expect(ics.headers["content-type"]).toMatch(/^text\/calendar/);
+    expect(ics.headers["content-disposition"]).toBe(`attachment; filename="unworried-${event_id}-v2.ics"`);
+    expect(ics.body).toMatch(/BEGIN:VEVENT[\s\S]*SEQUENCE:2[\s\S]*DESCRIPTION:Covered by Jordan: they said yes\.[\s\S]*X-UNWORRIED-COVERED-BY:Jordan[\s\S]*END:VEVENT/);
+    expect((await c("GET", "/api/ics?event_id=nope")).status).toBe(404);
     const u = (await c("POST", "/api/undo", { token: r.undo_token })).json as { status: string; events: { readback: { version: string } }[] };
     expect(u).toMatchObject({ status: "restored", events: [{ readback: { version: "v3" } }] });
     const back = await cal.get(event_id);
@@ -464,6 +470,27 @@ describe("D14 — the loop closes: the parent records the reply to a handoff", (
     expect(st.conflicts.find((x) => x.at.startsWith("2026-11-05"))!.covered_by).toBeUndefined();
     expect(st.chat.at(-1)!.text).toMatch(/Jordan said no\. .* still yours — nothing on your calendar changed/);
     expect((await c("POST", "/api/reply", { draft_id: "nope", answer: "yes" })).json).toMatchObject({ error: "unknown_draft" });
+  });
+});
+
+describe("D15 — the day slider: what holds on another day, by what has been said up to now", () => {
+  it("Thursday backup: Alex in September, Jordan from 10/3; after 'from tomorrow Alex…' is confirmed on 11/3, 11/3 still reads Jordan and 11/5 reads Alex", async () => {
+    const wow = { cards: [{ quote: "From tomorrow Alex is the backup for Thursday pickups.", mode: "decides", topic: "pickup_backup", facet: "thursday", scope: "kids", decided_by: "me", effective: "2026-11-04", decided_at: null, value: "backup Alex", unsure: [] }] };
+    const { guard } = guardWith({ intake: () => wow });
+    const { route } = app({ guard });
+    const c = client(route);
+    await login(c);
+    type Day = { day: string; seats: { key: string; in_effect: { card_id: string; value?: string } | null }[] };
+    const thu = async (day: string) => ((await c("GET", `/api/seats?day=${day}`)).json as Day).seats.find((r) => r.key === "pickup_backup|thursday|kids")!.in_effect;
+    expect(await thu("2026-10-01")).toMatchObject({ card_id: "pickup.sept" });
+    expect(await thu("2026-10-10")).toMatchObject({ card_id: "pickup.oct3" });
+    const chat = (await c("POST", "/api/chat", { text: wow.cards[0].quote })).json as { candidates: { candidate_id: string; same_seat: string[] }[] };
+    const cand = chat.candidates[0];
+    expect((await c("POST", "/api/confirm", { candidate_id: cand.candidate_id, edits: { relations: Object.fromEntries(cand.same_seat.map((id) => [id, "REPLACES"])) } })).json).toMatchObject({ ok: true });
+    expect(await thu("2026-11-03")).toMatchObject({ card_id: "pickup.oct3" }); // decided today, in force tomorrow
+    expect(await thu("2026-11-05")).toMatchObject({ card_id: "pickup.thursday.nov3", value: "Alex" });
+    expect((await c("GET", "/api/seats?day=tomorrow")).json).toMatchObject({ error: "bad_day" });
+    expect((await c("GET", "/api/seats?day=2027-01-05")).json).toMatchObject({ error: "bad_day" });
   });
 });
 
