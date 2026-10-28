@@ -57,3 +57,41 @@ first note: 5/13 right · asked the wrong person 5 · acted where it should have
   never guesses which arrangement holds; the parent answers once and the card records it.
 - The first version of this eval did not pass the confirmed values the product stores, and unworried scored 11/13
   (it could not read "Alex is the backup for …" from the sentence alone). The eval can go red; it did once.
+
+## The same scenarios, with a real model as the baseline (2026-10-28)
+
+The same 13 scenarios, the notes handed to
+the model as text with when each was said — what a person reading them would see, no links, no labels
+(`scripts/eval-model-baseline.ts`, held offline by `src/eval/model-baseline.test.ts`; 26 calls on 2026-10-28, about
+$0.003; raw replies in `evidence/eval-model-baseline-*.jsonl`). Run twice, differing in one sentence of the prompt:
+
+| Nemotron 3 Super, notes as text | right | asked the wrong person | acted where it should have asked | asked where it could have acted |
+|---|---|---|---|---|
+| told "if my notes don't let you tell, ask me instead of guessing" | 5 / 13 | 0 | 0 | 8 |
+| not told | 5 / 13 | 4 | 4 | 0 |
+
+Told to ask, it asked in 12 of 13 — mostly about things the notes already settle ("does 'Alex' refer to your
+partner/spouse?"); one question named the real conflict (S10). Not told, it never asked. One sentence of prompt moves
+it from asking about everything to guessing; what decides when to ask is which arrangement holds, and that is what
+the ledger keeps. One run per variant, temperature 0, constructed scenarios.
+
+Per scenario (✓ = matches the expected answer):
+
+| # | expected | told to ask | not told |
+|---|---|---|---|
+| S01 | asks Alex | ✓ asks Alex | ✓ asks Alex |
+| S02 | asks Jordan | ✗ asks you | ✓ asks Jordan |
+| S03 | asks Alex | ✗ asks you | ✓ asks Alex |
+| S04 | asks Alex | ✗ asks you | ✗ asks Jordan |
+| S05 | asks Jordan | ✗ asks you | ✓ asks Jordan |
+| S06 | asks Jordan | ✗ asks you | ✗ asks Alex |
+| S07 | asks Jordan | ✗ asks you | ✗ asks Casey |
+| S08 | refuses (asks you) | ✓ asks you | ✗ asks Alex |
+| S09 | refuses (asks you) | ✓ asks you | ✗ asks Alex |
+| S10 | refuses (asks you) | ✓ asks you | ✗ asks Casey |
+| S11 | refuses (asks you) | ✓ asks you | ✗ asks Alex |
+| S12 | asks Alex | ✗ asks you | ✓ asks Alex |
+| S13 | asks Jordan | ✗ asks you | ✗ asks Alex |
+
+When told to ask, the questions it asked in S08, S09 and S11 were not about the real gap (for S11: "whether 'Alex'
+refers to your partner/spouse"); counted as right because the answer, asking, is right.

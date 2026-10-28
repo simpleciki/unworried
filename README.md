@@ -100,6 +100,21 @@ one mentions) and read them the way a plain memory would. No model is called
 | a memory that trusts the newest note | 6 / 13 | 4 | 3 |
 | a memory that was never updated | 5 / 13 | 5 | 3 |
 
+**The same question to NVIDIA Nemotron 3 Super, without the ledger.** The same 13 scenarios, the notes handed to
+the model as text with when each was said — what a person reading them would see, no links, no labels
+(`scripts/eval-model-baseline.ts`, held offline by `src/eval/model-baseline.test.ts`; 26 calls on 2026-10-28, about
+$0.003; raw replies in `evidence/eval-model-baseline-*.jsonl`). Run twice, differing in one sentence of the prompt:
+
+| Nemotron 3 Super, notes as text | right | asked the wrong person | acted where it should have asked | asked where it could have acted |
+|---|---|---|---|---|
+| told "if my notes don't let you tell, ask me instead of guessing" | 5 / 13 | 0 | 0 | 8 |
+| not told | 5 / 13 | 4 | 4 | 0 |
+
+Told to ask, it asked in 12 of 13 — mostly about things the notes already settle ("does 'Alex' refer to your
+partner/spouse?"); one question named the real conflict (S10). Not told, it never asked. One sentence of prompt moves
+it from asking about everything to guessing; what decides when to ask is which arrangement holds, and that is what
+the ledger keeps. One run per variant, temperature 0, constructed scenarios.
+
 Read it honestly: the scenarios are built to contain the traps the product is for; they show it follows its own rules
 and how often a plain memory falls into those traps, not how often the traps happen in real life. Reading start
 dates fixes the timing traps; what it does not fix is a question read as a decision, and acting when two notes disagree. The first version
