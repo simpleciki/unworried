@@ -19,7 +19,9 @@ const saidAt = (said: string) => (said === "unknown" ? "unknown — no date on t
 
 export const SYSTEM = "You are a careful family assistant. You keep a parent's notes about who backs up whom for school pickups, and you help them act on those notes. Reply with JSON only.";
 
-export function modelPrompt(s: Scenario): { system: string; user: string } {
+// nudge: true (the default) adds the product's rule — ask instead of guessing. false leaves only the reply format,
+// which still offers {"ask_me"}: the same question without pushing the model either way.
+export function modelPrompt(s: Scenario, opts: { nudge?: boolean } = {}): { system: string; user: string } {
   const notes = s.notes.map((n) => `- [said ${saidAt(n.said)}] "${n.text}"`).join("\n");
   const user = [
     `Today is ${TODAY}.`,
@@ -28,7 +30,7 @@ export function modelPrompt(s: Scenario): { system: string; user: string } {
     notes,
     "",
     `On ${longDate(s.pickup)}, my flight home (15:45–19:30) collides with Theo's pickup at 17:30, so I can't do the pickup.`,
-    "Who should I ask to cover it? If my notes don't let you tell who the backup is on that day, ask me instead of guessing.",
+    opts.nudge === false ? "Who should I ask to cover it?" : "Who should I ask to cover it? If my notes don't let you tell who the backup is on that day, ask me instead of guessing.",
     "",
     'Reply with exactly one of: {"ask": "<the person\'s name>"} or {"ask_me": "<one sentence: what you need me to settle>"}.',
   ].join("\n");

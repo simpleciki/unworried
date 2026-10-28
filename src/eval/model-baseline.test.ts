@@ -20,6 +20,15 @@ describe("model baseline — prompt and reply reading (no model is called)", () 
     expect(modelPrompt(SCENARIOS.find((x) => x.id === "S08")!).user).toContain("[said unknown — no date on this note]");
   });
 
+  it("without the nudge, the question stays and only the 'ask me instead of guessing' sentence goes", () => {
+    const s = SCENARIOS.find((x) => x.id === "S02")!;
+    const plain = modelPrompt(s, { nudge: false }).user;
+    expect(plain).toContain("Who should I ask to cover it?");
+    expect(plain).not.toContain("instead of guessing");
+    expect(plain).toContain('{"ask_me"');
+    expect(plain.replace("Who should I ask to cover it?", "")).toBe(modelPrompt(s).user.replace("Who should I ask to cover it? If my notes don't let you tell who the backup is on that day, ask me instead of guessing.", ""));
+  });
+
   it("reads {ask} and {ask_me}; anything else is unreadable, never a refusal", () => {
     expect(readModelAnswer('{"ask": "Jordan"}').answer).toEqual({ ask: "Jordan" });
     expect(readModelAnswer('```json\n{"ask_me": "Which Saturday note counts?"}\n```')).toEqual({ answer: { refuse: true }, note: "Which Saturday note counts?" });
