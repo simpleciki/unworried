@@ -10,11 +10,48 @@ export function extractJson(text: string): unknown {
   if (src === null) throw new Error("reply was prose, not JSON");
   const end = matchingEnd(src, 0);
   if (end < 0) throw new Error("invalid JSON: unterminated object");
+  let value: unknown;
   try {
-    return JSON.parse(src.slice(0, end + 1));
+    value = JSON.parse(src.slice(0, end + 1));
   } catch (e) {
     throw new Error(`invalid JSON: ${(e as Error).message}`);
   }
+  // JSON.parse keeps the LAST of two equal keys, silently. On 2026-10-27 the intake model wrote a correct
+  // card and then `"cards": []` in the same object, and the card vanished; a repeated key is an invalid
+  // reply (client.json() retries with this message), never a quiet overwrite.
+  const dup = duplicateKey(src.slice(0, end + 1));
+  if (dup !== null) throw new Error(`invalid JSON: the key "${dup}" appears twice in one object; give each key once`);
+  return value;
+}
+
+// The first key that appears twice in the same object, at any depth; null when every object is clean.
+export function duplicateKey(s: string): string | null {
+  const stack: { obj: boolean; keys: Set<string>; wantKey: boolean }[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"') {
+      let j = i + 1;
+      let str = "";
+      for (; j < s.length && s[j] !== '"'; j++) {
+        if (s[j] === "\\") str += s[j] + s[++j];
+        else str += s[j];
+      }
+      const top = stack[stack.length - 1];
+      if (top?.obj && top.wantKey) {
+        if (top.keys.has(str)) return str;
+        top.keys.add(str);
+        top.wantKey = false;
+      }
+      i = j;
+    } else if (c === "{") stack.push({ obj: true, keys: new Set(), wantKey: true });
+    else if (c === "[") stack.push({ obj: false, keys: new Set(), wantKey: false });
+    else if (c === "}" || c === "]") stack.pop();
+    else if (c === ",") {
+      const top = stack[stack.length - 1];
+      if (top?.obj) top.wantKey = true;
+    }
+  }
+  return null;
 }
 
 export const isProseError = (message: string | undefined) => !!message && message.includes("reply was prose, not JSON");
