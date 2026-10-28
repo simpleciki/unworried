@@ -209,5 +209,9 @@ export async function intake(msg: IntakeMessage, deps: IntakeDeps): Promise<Inta
     return rules(`the model call was refused: ${(e as Error).message}`);
   }
   if (!reply.value) return rules(`the model's reply could not be used: ${reply.error ?? "no JSON"}`);
+  // The model's "nothing here" is not trusted for a sentence that reads like an arrangement: dropping what
+  // the user said is the failure this product exists to prevent (2026-10-27, hosted: "From next week Jordan
+  // picks up Theo on Wednesdays." came back with no card). A question is left alone — it is a mention.
+  if (!reply.value.cards.length && DECISION_MARKERS.test(msg.text) && !QUESTION.test(msg.text)) return rules("the model found no arrangement here, but the sentence reads like one — check it yourself");
   return finish(reply.value.cards, "model");
 }

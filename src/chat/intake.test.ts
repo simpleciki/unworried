@@ -148,6 +148,23 @@ describe("C8 — the model's reply is checked, not trusted", () => {
     expect(fixed.ok).toBe(true);
   });
 
+  it('"no cards" for a sentence that reads like an arrangement is not trusted: a card to fill, the date by the clock', async () => {
+    const { guard } = fakeGuard(dir, () => intakeReply([]));
+    const r = await intake(msg("From next week Jordan picks up Theo on Wednesdays.", "2026-11-03T09:08:00-06:00"), { guard, store, extras, action_id: "a1" });
+    expect(r.candidates).toHaveLength(1);
+    expect(r.mode).toBe("rules");
+    expect(r.note).toMatch(/the model found no arrangement here, but the sentence reads like one/);
+    expect(r.candidates[0].card.effective).toBe("2026-11-09T00:00:00-06:00");
+    expect(store.cards()).toHaveLength(16); // nothing recorded until confirmed
+  });
+
+  it('"no cards" for a question stays no card (demo route b)', async () => {
+    const { guard } = fakeGuard(dir, () => intakeReply([]));
+    const r = await intake(msg("Which Saturday note counts?"), { guard, store, extras, action_id: "a1" });
+    expect(r.candidates).toEqual([]);
+    expect(r.mode).toBe("model");
+  });
+
   it("a non-JSON reply twice → rule fallback, nothing silently accepted", async () => {
     const { guard, fake } = fakeGuard(dir, () => "Sure! Here is the card you asked for.");
     const r = await intake(msg("From now on Jordan picks up Theo on Thursdays."), { guard, store, extras, action_id: "a1" });
