@@ -4,7 +4,10 @@
 // rules BEFORE running anything. Two baselines read the same notes the way a plain memory would:
 //   latest — the most recently said note that names a backup for that weekday (what a "remember
 //            everything, answer from the newest" assistant does);
-//   first  — the first such note (a memory that was never updated).
+//   first  — the first such note (a memory that was never updated);
+//   latestInForce — the newest note that has already taken effect on the pickup day (a memory that reads
+//            start dates, but not which note replaced which, nor whether a note was a question or a proposal).
+//            Added 2026-10-28 after an independent review: the first two baselines ignore start dates.
 // The scenarios are constructed (fictional family, controlled), not observed from real use.
 import type { CalEvent } from "../calendar/port.ts";
 import { detectConflicts } from "../action/detect.ts";
@@ -91,6 +94,18 @@ function named(s: Scenario): string[] {
 }
 export const latest = (s: Scenario): Answer => {
   const names = named(s);
+  return names.length ? { ask: names[names.length - 1] } : { refuse: true };
+};
+export const latestInForce = (s: Scenario): Answer => {
+  const day = dayOf(s.pickup);
+  const pickupAt = Date.parse(`${s.pickup}T12:00:00-06:00`);
+  const said = (n: Note) => (n.said === "unknown" ? Number.POSITIVE_INFINITY : Date.parse(n.said));
+  const names = s.notes
+    .filter((n) => n.days.includes(day))
+    .filter((n) => n.said === "unknown" || Date.parse(n.effective ?? n.said) <= pickupAt)
+    .map((n, i) => ({ n, i }))
+    .sort((x, y) => said(x.n) - said(y.n) || x.i - y.i)
+    .map(({ n }) => n.who);
   return names.length ? { ask: names[names.length - 1] } : { refuse: true };
 };
 export const first = (s: Scenario): Answer => {
