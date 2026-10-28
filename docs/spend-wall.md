@@ -86,9 +86,9 @@ LLM_ENABLED=false npm start               # kill switch (any process reading the
 
 - **Breaker tripped?** It stays off until the process restarts, and a restart re-reads the ledger: if the
   trailing hour is still over $0.50 it trips again at once. Wait, or raise `SPEND_HOUR_USD` knowingly.
-- **"no price for model …"**: add the id to `config/prices.json` (or `NEBIUS_PRICES_JSON`). Prices there are
-  provisional (`"source": "third-party aggregator, unverified 2026-10-14"`); replace them from the Token Factory
-  console before the first real call.
+- **"no price for model …"**: add the id to `config/prices.json` (or `NEBIUS_PRICES_JSON`). Prices there
+  were read from the Token Factory console prices page on 2026-10-27 (each entry's `source` names the product
+  row); re-read them there if the model changes.
 - **Changing the model**: set `NEBIUS_MODEL` to the id exactly as Token Factory lists it. There is no default
   in code.
 

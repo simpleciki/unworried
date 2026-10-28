@@ -1,13 +1,13 @@
 {
-  "_comment": "USD per 1M tokens. Keys are model ids exactly as Token Factory lists them (ids from the official Token Factory cookbook, models/nemotron/README.md, read 2026-10-26; the Super id also appears in Nebius's own Nemotron page sample). PRICES ARE PROVISIONAL: from third-party aggregators, not from the Nebius console prices page (login required). Replace before the first real call. The id in NEBIUS_MODEL must appear here or the guard refuses. Ultra is deliberately absent: never used.",
+  "_comment": "USD per 1M tokens. Keys are model ids exactly as Token Factory's API lists them (ids from the official Token Factory cookbook; the id in NEBIUS_MODEL is confirmed in S7 with GET /v1/models and must appear here or the guard refuses). Prices read from the Nebius console prices page (tokenfactory.nebius.com/organization/prices, region eu-north1, filter 'Nemotron') on 2026-10-27 19:2x CDT. The console also lists a cheaper 'Cached' input price (valid from 20 Oct 2026); the wall charges every input token at the full input price, so it over-counts, never under-counts. Ultra is deliberately absent: never used.",
   "nvidia/Nemotron-3_5-Lightning": {
     "input_per_m": 0.06,
     "output_per_m": 0.24,
-    "source": "third-party aggregator (typingmind cost estimator, 'Nemotron 3.5 Lightning 30B A3B' on Nebius), unverified 2026-10-26"
+    "source": "Nebius console prices page, product 'Nemotron-3.5-Lightning' Input $0.06 / Output $0.24 per 1M tokens, valid from 01 Aug 2026 UTC; read 2026-10-27"
   },
   "nvidia/nemotron-3-super-120b-a12b": {
     "input_per_m": 0.3,
     "output_per_m": 0.9,
-    "source": "third-party aggregator (typingmind cost estimator), unverified 2026-10-26; another aggregator shows 0.65 output for a different provider"
+    "source": "Nebius console prices page, product 'Nvidia-Nemotron-3-Super-120B-A12B' Input $0.3 / Output $0.9 per 1M tokens, valid from 01 Mar 2026 UTC; read 2026-10-27"
   }
 }
