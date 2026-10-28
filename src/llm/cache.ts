@@ -17,6 +17,19 @@ export function cacheKey(k: CacheKeyInput): string {
   return createHash("sha256").update(JSON.stringify(parts), "utf8").digest("hex");
 }
 
+// The same key with every timestamp in the prompt cut to its date. A message's send time carries the
+// second it was typed (the chat clock), so a reply recorded for a demo sentence never matched the same
+// sentence typed by a judge: replays missed and SAMPLE mode fell back to an all-unsure card. Dates the
+// reply implies are worked out again by code from the real send time, so the day is what the reply
+// depends on. The prompt the model sees is unchanged; only the lookup is.
+export function dayKey(k: CacheKeyInput): string {
+  return cacheKey({ ...k, user: dayOnly(k.user) });
+}
+
+export function dayOnly(text: string): string {
+  return text.replace(/\b(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?/g, "$1");
+}
+
 export interface ResponseCache {
   get(key: string): CachedResponse | undefined;
   set(key: string, value: CachedResponse): void;

@@ -6,7 +6,8 @@ import { createHash } from "node:crypto";
 import type { ChatProvider } from "./provider.ts";
 import { ProviderError } from "./provider.ts";
 import type { ResponseCache } from "./cache.ts";
-import { cacheKey } from "./cache.ts";
+import { cacheKey, dayKey } from "./cache.ts";
+import type { CachedResponse } from "./cache.ts";
 import { extractJson } from "./json.ts";
 import { candidateModes } from "./modes.ts";
 import type { DeadModes } from "./modes.ts";
@@ -104,13 +105,25 @@ export class ModelClient {
     return cacheKey({ model: spec.model, system: spec.system, user: spec.user, temperature: this.temperature, namespace: this.opts.cacheNamespace });
   }
 
+  // The fallback key: the prompt with its timestamps cut to dates (see dayKey). Read after the exact key
+  // misses; written beside it, so a recorded reply is found by the same sentence on the same day.
+  dayKeyOf(spec: CallSpec) {
+    return dayKey({ model: spec.model, system: spec.system, user: spec.user, temperature: this.temperature, namespace: this.opts.cacheNamespace });
+  }
+
+  private remember(spec: CallSpec, value: CachedResponse) {
+    this.cache.set(this.keyOf(spec), value);
+    const day = this.dayKeyOf(spec);
+    if (day !== this.keyOf(spec)) this.cache.set(day, value);
+  }
+
   // read: may the reply come from the cache; write: may this reply be cached as it is. JSON calls write
   // only after the reply passed parsing and the schema (see json()), never here.
   async raw(spec: CallSpec, retry = 0, cacheUse: { read: boolean; write: boolean } = { read: true, write: true }): Promise<RawReply> {
     const key = this.keyOf(spec);
     const prompt_hash = sha(`${spec.model}\n${spec.system}\n${spec.user}`);
     const base = { stage: spec.stage, agent: spec.agent, prompt_hash, retry_count: retry };
-    const hit = cacheUse.read ? this.cache.get(key) : undefined;
+    const hit = cacheUse.read ? (this.cache.get(key) ?? this.cache.get(this.dayKeyOf(spec))) : undefined;
     if (hit) {
       this.onEvent({ ...base, cache: "hit", latency_ms: 0, model_answered: hit.model, outcome: "ok", route: "cache", requested: spec.model });
       return { text: hit.text, model: hit.model, mode: hit.mode ?? spec.model, fromCache: true };
@@ -128,7 +141,7 @@ export class ModelClient {
         this.budget.take(); // every attempt, retries and fallbacks included, counts against --max-calls
         try {
           const r = await this.provider.chat({ model: mode, system: spec.system, user: spec.user, temperature: this.temperature });
-          if (cacheUse.write) this.cache.set(key, { text: r.text, model: r.model, mode });
+          if (cacheUse.write) this.remember(spec, { text: r.text, model: r.model, mode });
           this.succeeded.add(mode);
           this.opts.deadModes?.markAlive(mode);
           if (mode !== intended) this.recordFallback(spec, base, intended, dead, mode, r.model);
@@ -191,7 +204,7 @@ export class ModelClient {
         user = `${spec.user}\n\nAttempt ${attempt + 2}. Your previous reply could not be used: ${lastError}. Reply with the JSON object only.`;
         continue;
       }
-      if (!r.fromCache) this.cache.set(this.keyOf(spec), { text: r.text, model: r.model, mode: r.mode });
+      if (!r.fromCache) this.remember(spec, { text: r.text, model: r.model, mode: r.mode });
       return { value, model, retries: attempt };
     }
     return { value: null, model, error: lastError, retries };

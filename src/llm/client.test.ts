@@ -52,6 +52,15 @@ describe("ModelClient", () => {
     expect(events.map((e) => e.cache)).toEqual(["miss", "hit"]);
   });
 
+  it("replays a reply recorded for the same sentence sent at another second of the same day, never another day", async () => {
+    const at = (t: string) => ({ ...spec, user: `Message sent at ${t} (America/Chicago) by "me":\n\nFrom tomorrow Alex is the backup for Thursday pickups.` });
+    const cache = new MemoryCache();
+    await new ModelClient(new FakeProvider(() => '{"hi": "recorded"}'), cache, new CallBudget(1)).json(at("2026-11-03T09:00:05-06:00"), parseHi, 0);
+    const replay = new ModelClient(null, cache, new CallBudget(0)); // SAMPLE mode: no provider, no budget
+    expect((await replay.json(at("2026-11-03T09:03:41-06:00"), parseHi, 0)).value).toBe("recorded");
+    await expect(replay.json(at("2026-11-04T09:00:05-06:00"), parseHi, 0)).rejects.toThrow(/needs model credentials/);
+  });
+
   it("without a provider, a cache miss fails with 'needs model credentials'", async () => {
     const client = new ModelClient(null, new MemoryCache(), new CallBudget(1));
     await expect(client.text(spec)).rejects.toThrow(/needs model credentials/);
