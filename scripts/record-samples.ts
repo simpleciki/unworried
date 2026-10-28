@@ -31,10 +31,14 @@ async function main() {
   const api = new Api(sandboxes);
   const sb = sandboxes.reset("record-samples", "ciki");
   const action = () => `record-${Date.now()}`;
+  // How long a judge waits for each step (model calls, or cache hits when re-run).
+  let t0 = Date.now();
+  const took = () => { const s = ((Date.now() - t0) / 1000).toFixed(1); t0 = Date.now(); return `${s}s`; };
+  console.log(`model: ${wall.model}`);
 
   // (a) T1: the Thursday sentence → card → confirm REPLACES → re-plan 11/5 (explanation recorded).
   const a = await api.chat(sb, DEMO_ROUTES.a_thursday, action());
-  console.log(`(a) intake ${a.mode}: ${a.candidates.length} candidate(s)`, a.candidates.map((c) => ({ unsure: c.unsure, relations: c.relations })));
+  console.log(`(a) intake ${a.mode} [${took()}]: ${a.candidates.length} candidate(s)`, a.candidates.map((c) => ({ unsure: c.unsure, relations: c.relations })));
   const cand = a.candidates[0];
   if (cand && !cand.unsure.length) {
     const edits = cand.card.effective ? {} : { card: { effective: "2026-10-03" } };
@@ -42,16 +46,18 @@ async function main() {
   }
   const conflicts = await api.conflicts(sb);
   const thu = conflicts.find((c) => c.at.startsWith("2026-11-05"));
-  if (thu) console.log("(a) plan", (await api.plan(sb, thu.conflict_id, action())).explanation);
+  if (thu) { t0 = Date.now(); const e = (await api.plan(sb, thu.conflict_id, action())).explanation; console.log(`(a) plan [${took()}]`, e); }
   // (b) T3: the Saturday conflict → refused → "which one counts?"
   const sat = (await api.conflicts(sb, { all: true })).find((c) => c.at.startsWith("2026-10-31"));
-  if (sat) console.log("(b) plan", (await api.plan(sb, sat.conflict_id, action(), { all: true })).explanation);
+  if (sat) { t0 = Date.now(); const e = (await api.plan(sb, sat.conflict_id, action(), { all: true })).explanation; console.log(`(b) plan [${took()}]`, e); }
   // The question a judge types in route (b): a mention, so no card and nothing changes.
+  t0 = Date.now();
   const q = await api.chat(sb, "Which Saturday note counts?", action());
-  console.log(`(b) question ${q.mode}: ${q.candidates.length} candidate(s)`);
+  console.log(`(b) question ${q.mode} [${took()}]: ${q.candidates.length} candidate(s)`);
   // (c) T10: the two focus blocks.
+  t0 = Date.now();
   const c = await api.contrast(sb, action());
-  console.log("(c) contrast", c.pairs.map((p) => `${p.plan.status}: ${p.explanation.mode}`));
+  console.log(`(c) contrast [${took()}]`, c.pairs.map((p) => `${p.plan.status}: ${p.explanation.mode}`));
   console.log("spend:", JSON.stringify(guard.status("record-samples")?.session));
   console.log("Recorded replies are in cache/samples/. Commit them.");
 }

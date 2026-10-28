@@ -5,7 +5,7 @@ import { detectConflicts } from "../action/detect.ts";
 import { seedEvents } from "../action/fixtures.test-helpers.ts";
 import { planConflict } from "../action/plan.ts";
 import type { Lookup } from "../action/seats-view.ts";
-import { checkSentence, claimsSending, explainPlan } from "./explain.ts";
+import { checkSentence, claimsSending, claimsToday, explainPlan } from "./explain.ts";
 import { DEMO_CLOCK, fakeGuard, reply, seededStore, tmp } from "./fixtures.test-helpers.ts";
 
 let dir: string;
@@ -78,6 +78,17 @@ describe("C10 — explain", () => {
     const r = await explainPlan(plan, lookups, { guard, session_id: "s1", action_id: "a1" });
     expect(r.explanation_prose).toBe("Jordan is the Thursday backup.");
     expect(r.explanation_removed).toEqual(["The assistant will send a handoff message to Jordan. (says it sends; the assistant only drafts, never sends)"]);
+  });
+
+  it("removes a sentence that says what day it is now (the Super reply of 2026-10-27 said Thursday on a Tuesday)", async () => {
+    expect(claimsToday("Since today is Thursday, the backup person for Theo's pickup is Jordan.")).toBe(true);
+    expect(claimsToday("Nothing on your calendar changes today.")).toBe(false);
+    expect(claimsToday("The Thursday backup is Jordan.")).toBe(false);
+    const { plan, lookups } = thursdayPlan();
+    const { guard } = fakeGuard(dir, () => reply({ sentences: ["Since today is Thursday, the backup is Jordan.", "Jordan is the Thursday backup."] }));
+    const r = await explainPlan(plan, lookups, { guard, session_id: "s1", action_id: "a1" });
+    expect(r.explanation_prose).toBe("Jordan is the Thursday backup.");
+    expect(r.explanation_removed).toEqual(["Since today is Thursday, the backup is Jordan. (says what day it is now; the plan does not)"]);
   });
 
   it("keeps at most four sentences", async () => {

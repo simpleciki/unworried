@@ -47,6 +47,14 @@ export function claimsSending(sentence: string): boolean {
   return false;
 }
 
+// The plan never says what day it is now, so a sentence that does ("Since today is Thursday", said for a
+// Tuesday on 2026-10-27) is removed: every word in it may be in the plan and it is still false.
+const NOW_WORDS = /\b(today|tonight|this (?:morning|afternoon|evening)|right now|currently)\b/i;
+const DAY_OR_DATE = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2})\b/i;
+export function claimsToday(sentence: string): boolean {
+  return NOW_WORDS.test(sentence) && DAY_OR_DATE.test(sentence);
+}
+
 export function factsOf(plan: ActionPlan, lookups: Lookup<unknown>[]): string {
   const parts = [plan.explanation, plan.refusal?.reason ?? "", JSON.stringify(plan.steps), plan.at, plan.conflict_id, plan.plan_id];
   for (const l of lookups) parts.push(l.key, l.state, l.quote ?? "", l.decided_at ?? "", l.decided_by ?? "", l.effective ?? "", l.reason ?? "", String(l.value ?? ""), l.replaced?.quote ?? "", l.replaced?.decided_at ?? "", ...l.cards);
@@ -74,6 +82,10 @@ export async function explainPlan(plan: ActionPlan, lookups: Lookup<unknown>[], 
   for (const s of sentences.map((x) => x.trim()).filter(Boolean)) {
     if (claimsSending(s)) {
       removed.push(`${s} (says it sends; the assistant only drafts, never sends)`);
+      continue;
+    }
+    if (claimsToday(s)) {
+      removed.push(`${s} (says what day it is now; the plan does not)`);
       continue;
     }
     const check = checkSentence(s, facts);
