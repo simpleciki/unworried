@@ -7,7 +7,7 @@ Nebius × NVIDIA Global AI Hackathon 2026 · **Personal AI** track · every mode
 (`nvidia/nemotron-3-super-120b-a12b`) on Nebius Token Factory** · all people and data in this repository are fictional.
 
 **Live demo:** https://unworried.onrender.com (login in the submission's testing instructions) ·
-**Video (2:16):** ⟨YouTube link⟩
+**Video (2:16):** https://youtu.be/PNm0FIWy_Tg
 
 ## The moment it is built for
 
