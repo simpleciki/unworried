@@ -183,6 +183,14 @@ export class SandboxManager {
     return this.chatBase + (this.now() - this.startedAt);
   }
 
+  // What the assistant knows when it answers: every card said up to the latest chat moment. Seats are
+  // resolved at this instant, not at the fixed demo clock — a sentence a judge types is stamped after the
+  // demo clock, and resolving at the demo clock made every new card "dated after now" and every plan that
+  // needed it a refusal (hosted, 2026-10-27 22:2x). Which conflicts are shown still uses the demo clock.
+  knownAt(): number {
+    return Math.max(this.clock, this.chatNow());
+  }
+
   // The guard a model-using step should use right now: the real wall when it is open, the replay guard
   // (recorded replies only) when it is closed.
   guardFor(): { guard: SpendGuard; mode: "live" | "sample" } {

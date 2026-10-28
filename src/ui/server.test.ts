@@ -50,9 +50,9 @@ function guardWith(script: Script, over: Partial<GuardOptions> = {}) {
   return { guard, fake };
 }
 
-function app(opts: { guard: SpendGuard; accounts?: string; actionIds?: string[] }) {
+function app(opts: { guard: SpendGuard; accounts?: string; actionIds?: string[]; now?: () => number }) {
   const auth = new Auth({ accounts: parseAccounts(opts.accounts ?? "judge1:secret-one,judge2:secret-two"), file: join(root, "auth.json"), newId: (() => { let n = 0; return () => `sess-${++n}`; })() });
-  const sandboxes = new SandboxManager({ root, guard: opts.guard, now: () => CLOCK });
+  const sandboxes = new SandboxManager({ root, guard: opts.guard, now: opts.now ?? (() => CLOCK) });
   const ids = opts.actionIds;
   const route = createRouter({ auth, sandboxes, html: HTML, log: (l) => logs.push(l), newActionId: ids ? () => ids.shift() ?? `act-${Math.random().toString(36).slice(2, 8)}` : undefined });
   return { auth, sandboxes, route };
@@ -317,6 +317,24 @@ describe("D8 — approve → read back → undo", () => {
 });
 
 describe("D9 — the T1 route end to end through route()", () => {
+  it("with the clock running (as on a real server), a card confirmed a minute after the demo clock is in force for the plan — not \"dated after now\"", async () => {
+    let t = CLOCK;
+    const { guard } = guardWith({});
+    const { route } = app({ guard, now: () => (t += 60_000) }); // every read of the clock is a minute later
+    const c = client(route);
+    await login(c);
+    const chat = (await c("POST", "/api/chat", { text: "Change of plan: Thursdays I pick up, backup Jordan — Alex is travelling Thursdays now." })).json as { candidates: { candidate_id: string; card: { decided_at: string } }[] };
+    const cand = chat.candidates[0];
+    expect(Date.parse(cand.card.decided_at)).toBeGreaterThan(CLOCK); // stamped after the demo clock
+    const conf = (await c("POST", "/api/confirm", { candidate_id: cand.candidate_id, edits: { card_id: "pickup.nov3" } })).json as { ok: boolean; resolution: { state: string; in_effect_card: string } };
+    expect(conf).toMatchObject({ ok: true, resolution: { state: "PASS", in_effect_card: "pickup.nov3" } });
+    const st = (await c("GET", "/api/state")).json as { conflicts: { at: string; conflict_id: string }[] };
+    const thu = st.conflicts.find((x) => x.at.startsWith("2026-11-05"))!;
+    const plan = (await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json as { plan: { status: string; seat_versions: string[] } };
+    expect(plan.plan.status).toBe("ready");
+    expect(plan.plan.seat_versions).toContain("pickup_backup|thursday|kids=pickup.nov3");
+  });
+
   it("sentence → candidate → confirm (REPLACES) → seat PASS new card → re-plan 11/5 → handoff to Jordan → one draft, never sent", async () => {
     const { guard } = guardWith({});
     const { route, sandboxes } = app({ guard });

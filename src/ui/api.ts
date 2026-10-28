@@ -130,7 +130,7 @@ export class Api {
   }
 
   async state(sb: JudgeSandbox): Promise<StateView> {
-    const seats = sb.ledger.seatsView(this.m.clock);
+    const seats = sb.ledger.seatsView(this.m.knownAt());
     return {
       judge: sb.judge,
       session_id: sb.session_id,
@@ -138,7 +138,7 @@ export class Api {
       wall: this.wallView(sb),
       chat: sb.chat(),
       candidates: sb.ledger.candidates("pending"),
-      seats: seatRows(seats, Object.keys(this.m.extras.categories), this.m.clock),
+      seats: seatRows(seats, Object.keys(this.m.extras.categories), this.m.knownAt()),
       calendar: { events: await sb.calendar.all() },
       conflicts: await this.conflicts(sb),
       plans: Object.fromEntries(sb.plans),
@@ -188,7 +188,7 @@ export class Api {
       sb.say({ message_id: `a-${randomUUID().slice(0, 8)}`, sent_at: chicagoIso(this.m.chatNow()), from: "assistant", text: `✓ Recorded undated: "${card.quote}" — I cannot order it against other arrangements on its seat, so conflicts there will be refused and both shown to you.`, card_ids: [card_id] });
       return { ok: true as const, card, undated: true, seat: `${card.topic}|${card.facets[0]}|${card.scope}` };
     }
-    const r = confirm(candidate_id, edits, { store: sb.ledger, extras: this.m.extras, clock: this.m.clock });
+    const r = confirm(candidate_id, edits, { store: sb.ledger, extras: this.m.extras, clock: this.m.knownAt() });
     if (!r.ok) throw new ApiError(422, "unsure", r.reason);
     const relations = Object.entries({ ...c.relations, ...(edits.relations ?? {}) }).filter(([, rel]) => rel !== "UNRELATED") as [string, Relation][];
     const replaced = relations.map(([id, rel]) => `${rel.toLowerCase()} ${id}`).join(", ");
@@ -212,7 +212,7 @@ export class Api {
     if (!opts.all && Date.parse(view.overlap.start) < this.m.clock) throw new ApiError(409, "in_the_past", `this conflict is before the demo clock; use the contrast view`);
     const conflict: Conflict = { conflict_id: view.conflict_id, a: view.a, b: view.b, overlap: view.overlap };
     const events = await sb.calendar.all();
-    const seats = sb.ledger.seatsView(this.m.clock);
+    const seats = sb.ledger.seatsView(this.m.knownAt());
     const plan = planConflict(conflict, { events, seats });
     const { guard } = this.m.guardFor();
     const explanation = await explainPlan(plan, lookupsFor(plan, seats), { guard, session_id: sb.session_id, action_id, cache: sb.cache });
@@ -226,7 +226,7 @@ export class Api {
     const stored = sb.plans.get(plan_id);
     if (!stored) throw new ApiError(404, "unknown_plan", `no plan ${plan_id} in this sandbox; plan the conflict first`);
     sb.trace.write({ session_id: sb.session_id, action: "ui.approve", ref: action_id, outcome: "approved", details: { plan_id } });
-    const result = await executePlan(stored.plan, { approved: true, session_id: sb.session_id, calendar: sb.calendar, seats: sb.ledger.seatsView(this.m.clock), outbox: sb.outbox, trace: sb.trace, store: sb.actions });
+    const result = await executePlan(stored.plan, { approved: true, session_id: sb.session_id, calendar: sb.calendar, seats: sb.ledger.seatsView(this.m.knownAt()), outbox: sb.outbox, trace: sb.trace, store: sb.actions });
     stored.result = result;
     return result;
   }
