@@ -18,8 +18,8 @@ const msg = (text: string, sent_at = "2026-10-27T20:10:00-05:00") => ({ message_
 
 describe("C1 — effective vs decided_at", () => {
   it("effective = the Thursday the model proposed; decided_at = sent_at", async () => {
-    const { guard, fake } = fakeGuard(dir, () => intakeReply([thursdayJordanCard({ quote: "From next Thursday Jordan picks up Theo", effective: "2026-10-29" })]));
-    const r = await intake(msg("From next Thursday Jordan picks up Theo."), { guard, store, extras, action_id: "a1" });
+    const { guard, fake } = fakeGuard(dir, () => intakeReply([thursdayJordanCard({ quote: "From Thursday Jordan picks up Theo", effective: "2026-10-29" })]));
+    const r = await intake(msg("From Thursday Jordan picks up Theo."), { guard, store, extras, action_id: "a1" });
     expect(r.mode).toBe("model");
     expect(fake.calls).toHaveLength(1);
     expect(fake.calls[0].maxTokens).toBe(512); // the intake kind's cap
@@ -33,6 +33,24 @@ describe("C1 — effective vs decided_at", () => {
     expect(c.same_seat).toEqual(["pickup.oct3"]); // what currently sits on pickup_backup|thursday|kids
     expect(c.status).toBe("pending");
     expect(store.candidate(c.candidate_id)).toEqual(c);
+  });
+
+  it("a start date in words is worked out by the code: the model's wrong day is replaced, and said so", async () => {
+    // 2026-10-27 on the hosted site: "From next week …" said Tue 11/3 came back from the model as 11/10.
+    const { guard } = fakeGuard(dir, () => intakeReply([thursdayJordanCard({ quote: "From next week Jordan picks up Theo", effective: "2026-11-10T00:00:00-06:00" })]));
+    const r = await intake(msg("From next week Jordan picks up Theo.", "2026-11-03T09:04:35-06:00"), { guard, store, extras, action_id: "a1" });
+    const c = r.candidates[0];
+    expect(c.card.effective).toBe("2026-11-09T00:00:00-06:00");
+    expect(c.unsure).toEqual([]);
+    expect(c.note).toMatch(/start date set by the clock, not the model \(it said 2026-11-10\): "from next week" said on Tue 2026-11-03 = Mon 2026-11-09/);
+  });
+
+  it('"next Thursday" is not guessed: effective is unsure and both readings are named', async () => {
+    const { guard } = fakeGuard(dir, () => intakeReply([thursdayJordanCard({ quote: "From next Thursday Jordan picks up Theo", effective: "2026-10-29" })]));
+    const r = await intake(msg("From next Thursday Jordan picks up Theo."), { guard, store, extras, action_id: "a1" });
+    const c = r.candidates[0];
+    expect(c.unsure).toEqual(["effective"]);
+    expect(c.note).toMatch(/"from next thursday" can mean Thu 2026-10-29 or Thu 2026-11-05 — pick the start date/);
   });
 
   it("T2: a sentence naming an earlier moment → decided_at then, recorded now, both kept", async () => {
@@ -96,7 +114,9 @@ describe("C7 — the wall is off", () => {
     expect(on.candidates).toHaveLength(1);
     const c = on.candidates[0];
     expect(c.note).toMatch(/the model is off; fill the card yourself/);
-    expect(c.unsure.sort()).toEqual(["effective", "facet", "quote", "scope", "topic", "value"].sort());
+    // "From now on" needs no model: the code sets the start to the moment it was said.
+    expect(c.unsure.sort()).toEqual(["facet", "quote", "scope", "topic", "value"].sort());
+    expect(c.card.effective).toBe("2026-10-27T20:10:00-05:00");
     expect(c.card.decided_at).toBe("2026-10-27T20:10:00-05:00");
     const off = await intake(msg("The Pebblemail launch went fine, thanks."), { guard, store, extras, action_id: "a1" });
     expect(off.candidates).toEqual([]);

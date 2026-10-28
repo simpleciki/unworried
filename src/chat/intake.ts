@@ -17,6 +17,7 @@ import type { SpendGuard } from "../spend/guard.ts";
 import type { Candidate, CandidateCard, LedgerStore } from "../ledger/store.ts";
 import { parseMovable, parsePickupBackup, parsePriority, parseWorkingHours } from "../action/seats-view.ts";
 import { chicagoIso } from "../time/chicago.ts";
+import { resolveRelativeStart } from "../time/relative.ts";
 import { intakePrompt } from "./prompts.ts";
 import type { VocabExtras } from "./prompts.ts";
 
@@ -123,6 +124,15 @@ export function checkCandidate(card: CandidateCard, value: string | null, text: 
   else if (!parseTime(out.decided_at)) unsure.add("decided_at");
 
   if (out.mode === "decides") {
+    // A start date the sentence says in words is worked out by code from when it was sent; the code wins.
+    const rel = resolveRelativeStart(text, out.source_recorded_at);
+    if (rel?.kind === "date" && (out.effective === null || out.effective.slice(0, 10) !== rel.effective.slice(0, 10))) {
+      notes.push(`start date set by the clock${out.effective ? `, not the model (it said ${out.effective.slice(0, 10)})` : ""}: ${rel.reading}`);
+      out.effective = rel.effective;
+    } else if (rel?.kind === "ambiguous") {
+      unsure.add("effective");
+      notes.push(`"${rel.phrase}" can mean ${rel.readings.join(" or ")} — pick the start date`);
+    }
     if (out.effective === null) unsure.add("effective");
     else if (!parseTime(out.effective)) unsure.add("effective");
     const parse = VALUE_PARSERS[out.topic];
