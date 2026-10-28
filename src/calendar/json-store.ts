@@ -26,6 +26,7 @@ export function validateEvent(raw: unknown, where: string): CalEvent {
   if (!(start < end)) throw new CalendarError(`${where}: event ${event_id} ends before it starts`);
   if (e.owner !== "me") throw new CalendarError(`${where}: event ${event_id} owner must be "me"`);
   if (!Array.isArray(e.attendees) || e.attendees.some((a) => typeof a !== "string")) throw new CalendarError(`${where}: event ${event_id} attendees must be a string array`);
+  if (e.covered_by !== undefined && (typeof e.covered_by !== "string" || !e.covered_by.length)) throw new CalendarError(`${where}: event ${event_id} covered_by must be a non-empty string`);
   for (const k of ["buffer_before_min", "buffer_after_min"]) {
     if (e[k] !== undefined && (typeof e[k] !== "number" || (e[k] as number) < 0)) throw new CalendarError(`${where}: event ${event_id} ${k} must be a non-negative number`);
   }
@@ -43,6 +44,7 @@ export function validateEvent(raw: unknown, where: string): CalEvent {
   if (typeof e.location === "string") out.location = e.location;
   if (typeof e.buffer_before_min === "number") out.buffer_before_min = e.buffer_before_min;
   if (typeof e.buffer_after_min === "number") out.buffer_after_min = e.buffer_after_min;
+  if (typeof e.covered_by === "string") out.covered_by = e.covered_by;
   return out;
 }
 

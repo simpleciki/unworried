@@ -17,6 +17,7 @@ export interface CalEvent {
   location?: string;
   buffer_before_min?: number;
   buffer_after_min?: number;
+  covered_by?: string; // someone else said yes to being there: the owner no longer has to be (no conflict for the owner)
 }
 
 export interface CalendarPort {

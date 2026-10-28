@@ -90,6 +90,7 @@ export function createRouter(deps: RouterDeps): (req: Req) => Promise<Res> {
       if (req.method === "POST" && path === "/api/plan") return done(json(200, await api.plan(sb, str("conflict_id"), action_id)));
       if (req.method === "POST" && path === "/api/approve") return done(json(200, await api.approve(sb, str("plan_id"), action_id)));
       if (req.method === "POST" && path === "/api/undo") return done(json(200, await api.undo(sb, str("token"), action_id)));
+      if (req.method === "POST" && path === "/api/reply") return done(json(200, await api.reply(sb, str("draft_id"), str("answer"), action_id)));
       return done(fail(404, "not_found", `no route ${req.method} ${path}`));
     } catch (e) {
       if (e instanceof ApiError) return done(fail(e.status, e.message, e.reason));

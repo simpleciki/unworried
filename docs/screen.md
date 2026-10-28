@@ -124,7 +124,7 @@ recorded with (it is part of the cache key).
 
 | route | what to do | what the screen shows |
 |---|---|---|
-| (a) the wow | **Plan** the 11/5 conflict → "Thursday, Nov 5: Jordan can cover it" → type **`From tomorrow Alex is the backup for Thursday pickups.`** → the card (quote highlighted, value `backup Alex`, effective 11/4 worked out by the clock, head `pickup.oct3`) → choose REPLACES → Confirm (`pickup.thursday.nov3`; the old plan's *Why* now says what replaces it from Nov 4) → **Plan again** → the same hero card: "Alex can cover it", Jordan's 10/03 card struck through → Approve → READY → DRAFTED, the draft to Alex in the outbox under *Draft · you send it* | one sentence changes who is asked; the chain shows why |
+| (a) the wow | **Plan** the 11/5 conflict → "Thursday, Nov 5: Jordan can cover it" → type **`From tomorrow Alex is the backup for Thursday pickups.`** → the card (quote highlighted, value `backup Alex`, effective 11/4 worked out by the clock, head `pickup.oct3`) → choose REPLACES → Confirm (`pickup.thursday.nov3`; the old plan's *Why* now says what replaces it from Nov 4) → **Plan again** → the same hero card: "Alex can cover it", Jordan's 10/03 card struck through → Approve → READY → DRAFTED, the draft to Alex in the outbox under *Draft · you send it* → **Alex said yes** → the hero turns "Thursday is handled · covered — Alex said yes and has Theo — robotics club pickup. Your calendar says so (v2)"; the strip chip reads *covered*; Undo → v3, it needs you again | one sentence changes who is asked; the chain shows why; the reply closes it on the calendar |
 | (b) T3 | Plan is not offered for 10/31 (before the clock); open the Saturday row in panel 2: `UNDATED`, both fridge notes quoted, "Will refuse to draft a handoff for a saturday pickup" → type **`Which Saturday note counts?`** → the assistant answers it is a question (mention), nothing changes | the product asks instead of guessing |
 | (c) T10 | *Show the Monday focus-block contrast* → 10/26 `ready` (move to 11:30–13:30, "Focus blocks may be moved for a meeting", 2026-09-02) · 11/2 `refused` ("the Monday focus block may not be moved", decided 2026-10-20, replacing the September rule) → Approve 10/26 → read-back `v2` → Undo → `v3` | decided ≠ in force; the overturn chain in the refusal |
 
@@ -146,5 +146,6 @@ The script refuses without `RECORD_SAMPLES=yes`, with the wall off, or without a
 - Plan a conflict before the demo clock from the main list (`in_the_past`; the contrast view is explicit).
 - Approve a plan whose seats changed; approve twice (returns the first result); undo an event changed since.
 - Send anything: drafts stay in the outbox.
+- Read anyone's messages: the parent records the reply to a handoff (*X said yes / said no*). A yes writes `covered_by` on that event (read back, undoable); a covered conflict stays in the list as *handled* and is not planned again until the yes is undone; a no changes nothing on the calendar.
 - Call a model when the wall is off (the replay guard only reads the cache).
 - Compute spend in the browser; hide a refusal in a toast.

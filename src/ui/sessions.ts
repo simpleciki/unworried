@@ -28,7 +28,9 @@ export const DEMO_CLOCK_ISO = "2026-11-03T09:00:00-06:00";
 
 export type ChatLine = { message_id: string; sent_at: string; from: "me" | "assistant"; text: string; card_ids?: string[] };
 
-export type StoredPlan = { plan: ActionPlan; explanation: Explanation; result?: ExecutionResult; undo?: unknown; created_at: string };
+// pair: the two event ids of the conflict. A write to either event changes its version and so the conflict id;
+// the pair is how the plan stays with its conflict after the calendar changes.
+export type StoredPlan = { plan: ActionPlan; explanation: Explanation; result?: ExecutionResult; undo?: unknown; created_at: string; pair?: string };
 
 // Reads cache/samples/ first (the author's recorded replies), then the live cache; writes only to live.
 export class LayeredCache implements ResponseCache {

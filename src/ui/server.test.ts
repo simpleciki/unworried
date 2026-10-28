@@ -414,6 +414,59 @@ describe("D9 — the T1 route end to end through route()", () => {
   });
 });
 
+describe("D14 — the loop closes: the parent records the reply to a handoff", () => {
+  type St = { conflicts: { at: string; conflict_id: string; plan_id?: string; covered_by?: string }[]; outbox: { draft_id: string; kind: string; reply?: { answer: string; undone?: boolean } }[]; chat: { text: string }[] };
+  const handoffDrafted = async (c: Client) => {
+    const thu = (((await c("GET", "/api/state")).json as St).conflicts).find((x) => x.at.startsWith("2026-11-05"))!;
+    const plan = (await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json as { plan: { plan_id: string; steps: { target_event_id: string }[] } };
+    expect(((await c("POST", "/api/approve", { plan_id: plan.plan.plan_id })).json as { status: string }).status).toBe("drafted");
+    const draft = ((await c("GET", "/api/state")).json as St).outbox.find((d) => d.kind === "handoff")!;
+    return { plan, draft, event_id: plan.plan.steps[0].target_event_id };
+  };
+
+  it("yes → the pickup is covered (read back v2), the conflict is handled and keeps its plan, re-planning is refused; undo → v3, it needs you again", async () => {
+    const { guard } = guardWith({});
+    const { route, sandboxes } = app({ guard });
+    const c = client(route);
+    await login(c);
+    const { plan, draft, event_id } = await handoffDrafted(c);
+    const cal = sandboxes.get("sess-1", "judge1").calendar;
+    const r = (await c("POST", "/api/reply", { draft_id: draft.draft_id, answer: "yes" })).json as { status: string; readback: { version: string; covered_by: string }; undo_token: string };
+    expect(r).toMatchObject({ status: "covered", readback: { version: "v2", covered_by: "Jordan" } });
+    expect(await cal.get(event_id)).toMatchObject({ version: "v2", covered_by: "Jordan" });
+    let st = (await c("GET", "/api/state")).json as St;
+    const thu = st.conflicts.find((x) => x.at.startsWith("2026-11-05"))!;
+    expect(thu).toMatchObject({ covered_by: "Jordan", plan_id: plan.plan.plan_id }); // the plan stays with its conflict after the write
+    expect(st.outbox.find((d) => d.draft_id === draft.draft_id)!.reply).toMatchObject({ answer: "yes" });
+    expect(st.chat.at(-1)!.text).toMatch(/^✓ Jordan said yes\. .* covered by Jordan — calendar read back v2/);
+    expect((await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json).toMatchObject({ error: "covered" });
+    expect((await c("POST", "/api/reply", { draft_id: draft.draft_id, answer: "yes" })).json).toMatchObject({ error: "already_replied" });
+    const u = (await c("POST", "/api/undo", { token: r.undo_token })).json as { status: string; events: { readback: { version: string } }[] };
+    expect(u).toMatchObject({ status: "restored", events: [{ readback: { version: "v3" } }] });
+    const back = await cal.get(event_id);
+    expect(back?.version).toBe("v3");
+    expect(back?.covered_by).toBeUndefined();
+    st = (await c("GET", "/api/state")).json as St;
+    expect(st.conflicts.find((x) => x.at.startsWith("2026-11-05"))!.covered_by).toBeUndefined();
+    expect(st.outbox.find((d) => d.draft_id === draft.draft_id)!.reply).toMatchObject({ answer: "yes", undone: true });
+  });
+
+  it("no → recorded, the calendar is untouched, the conflict still needs you; a bad answer or unknown draft is refused", async () => {
+    const { guard } = guardWith({});
+    const { route, sandboxes } = app({ guard });
+    const c = client(route);
+    await login(c);
+    const { draft, event_id } = await handoffDrafted(c);
+    expect((await c("POST", "/api/reply", { draft_id: draft.draft_id, answer: "maybe" })).json).toMatchObject({ error: "bad_answer" });
+    expect((await c("POST", "/api/reply", { draft_id: draft.draft_id, answer: "no" })).json).toMatchObject({ status: "declined" });
+    expect(await sandboxes.get("sess-1", "judge1").calendar.get(event_id)).toMatchObject({ version: "v1" });
+    const st = (await c("GET", "/api/state")).json as St;
+    expect(st.conflicts.find((x) => x.at.startsWith("2026-11-05"))!.covered_by).toBeUndefined();
+    expect(st.chat.at(-1)!.text).toMatch(/Jordan said no\. .* still yours — nothing on your calendar changed/);
+    expect((await c("POST", "/api/reply", { draft_id: "nope", answer: "yes" })).json).toMatchObject({ error: "unknown_draft" });
+  });
+});
+
 describe("D10 — index.html", () => {
   it("has no external URL, no third-party brand names, and is English", () => {
     const urls = [...HTML.matchAll(/https?:\/\/[^\s"'<>)]+/g)].map((m) => m[0]);

@@ -33,6 +33,8 @@
   .chip b { display:block; font-size:.92rem; }
   .chip.on { border-color:var(--sage); box-shadow:0 0 0 3px var(--sagebg); }
   .chip .st { font-weight:600; }
+  .kicker.done { color:var(--sage); }
+  .covered { color:var(--sage); font-weight:600; }
   main { display:grid; grid-template-columns: 1.15fr .85fr; gap:1.5rem; padding:0 2rem 2.5rem; max-width:1400px; margin:0 auto; }
   .col { display:flex; flex-direction:column; gap:1.2rem; min-width:0; }
   section.panel { background:var(--card); border-radius:20px; padding:1.2rem 1.4rem; min-width:0; box-shadow:0 1px 0 var(--line); }
@@ -236,7 +238,7 @@
   const hm = (iso) => { const m = String(iso || "").match(/T(\d{2}):(\d{2})/); if (!m) return ""; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? "AM" : "PM"}`; };
   const words = (s) => String(s ?? "").replace(/_/g, " ");
   let STATE = null;
-  let SELECTED = null; // conflict_id shown in the hero
+  let SELECTED = null; // the event pair of the conflict shown in the hero (a write changes the conflict id, not the pair)
   let CONTRAST = []; // plan ids shown in the contrast panel
   let CAL_BOTH = false; // the calendar shows the demo week unless asked for both
 
@@ -376,30 +378,33 @@
   // ---- Calendar and conflicts: the strip and the hero ----
   function renderStrip() {
     const cs = STATE.conflicts;
-    if (!cs.some((c) => c.conflict_id === SELECTED)) SELECTED = cs.length ? cs[0].conflict_id : null;
+    if (!cs.some((c) => c.pair === SELECTED)) SELECTED = cs.length ? cs[0].pair : null;
     $("strip").innerHTML = cs.map((c) => {
       const p = c.plan_id && STATE.plans[c.plan_id];
-      const st = p ? (p.result ? p.result.status : p.plan.status) : "";
-      return `<button class="chip ${c.conflict_id === SELECTED ? "on" : ""}" data-conflict="${esc(c.conflict_id)}"><b>${esc(dow(c.overlap.start).slice(0, 3))} ${esc(md(c.overlap.start))}</b>${esc(c.a.title)} × ${esc(c.b.title)}${st ? ` · <span class="st status-${esc(st)}">${esc(st)}</span>` : ""}</button>`;
+      const st = c.covered_by ? "covered" : p ? (p.result ? p.result.status : p.plan.status) : "";
+      return `<button class="chip ${c.pair === SELECTED ? "on" : ""}" data-pair="${esc(c.pair)}"><b>${esc(dow(c.overlap.start).slice(0, 3))} ${esc(md(c.overlap.start))}</b>${esc(c.a.title)} × ${esc(c.b.title)}${st ? ` · <span class="st status-${esc(st === "covered" ? "executed" : st)}">${esc(st)}</span>` : ""}</button>`;
     }).join("");
-    $("strip").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { SELECTED = b.dataset.conflict; renderStrip(); renderHero(); }));
+    $("strip").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => { SELECTED = b.dataset.pair; renderStrip(); renderHero(); }));
   }
   function renderHero() {
     const cs = STATE.conflicts, out = $("hero");
-    const i = cs.findIndex((c) => c.conflict_id === SELECTED);
+    const i = cs.findIndex((c) => c.pair === SELECTED);
     if (i < 0) { out.innerHTML = '<h2 class="head">Nothing needs you.</h2><p class="muted">No conflicts at or after the demo clock.</p>'; return; }
     const c = cs[i], p = c.plan_id && STATE.plans[c.plan_id];
-    const ev = (e) => `<div class="ev2"><span class="t">${e.all_day ? "all day" : `${esc(hm(e.start))} – ${esc(hm(e.end))}`}</span><span>${esc(e.title)}${e.attendees && e.attendees.length ? ` <span class="muted">· with ${esc(e.attendees.join(", "))}</span>` : ""}</span></div>`;
+    const ev = (e) => `<div class="ev2"><span class="t">${e.all_day ? "all day" : `${esc(hm(e.start))} – ${esc(hm(e.end))}`}</span><span>${esc(e.title)}${e.attendees && e.attendees.length ? ` <span class="muted">· with ${esc(e.attendees.join(", "))}</span>` : ""}${e.covered_by ? ` <span class="covered">· covered by ${esc(e.covered_by)}</span> <span class="muted mono">${esc(e.version)}</span>` : ""}</span></div>`;
+    const d = p && handoffDraft(p.plan.plan_id);
     out.innerHTML = `<div class="conflict" data-conflict="${esc(c.conflict_id)}">
-      <div class="kicker">${esc(dow(c.overlap.start))} needs you · ${i + 1} of ${cs.length}</div>
-      <h2 class="head">${esc(dow(c.overlap.start))}, ${esc(md(c.overlap.start))}: ${outcome(p)}</h2>
+      <div class="kicker ${c.covered_by ? "done" : ""}">${esc(dow(c.overlap.start))} ${c.covered_by ? "is handled" : "needs you"} · ${i + 1} of ${cs.length}</div>
+      <h2 class="head">${esc(dow(c.overlap.start))}, ${esc(md(c.overlap.start))}: ${c.covered_by ? covered(c, d) : outcome(p)}</h2>
       <div class="evs">${ev(c.a)}${ev(c.b)}</div>
       <div class="fine" style="margin-top:0">They overlap ${esc(hm(c.overlap.start))} – ${esc(hm(c.overlap.end))}, counting the buffer kept around each event.</div>
       ${p ? "" : `<div class="actions"><button class="plan-btn">Plan</button></div><p class="fine">Planning reads what holds today and drafts what to do. Nothing changes until you approve.</p>`}
+      ${replyHtml(d)}
       <div class="err"></div>
       <div class="plan-out">${p ? planHtml(p) : ""}</div>
-      ${p ? `<div class="actions"><button class="quiet plan-btn">Plan again</button></div><p class="fine">Changed an arrangement since? Plan again reads what holds now. Nothing changes until you approve.</p>` : ""}</div>`;
+      ${p && !c.covered_by ? `<div class="actions"><button class="quiet plan-btn">Plan again</button></div><p class="fine">Changed an arrangement since? Plan again reads what holds now. Nothing changes until you approve.</p>` : ""}</div>`;
     wirePlan(out.querySelector(".conflict"), c.conflict_id);
+    wireReplies(out);
   }
 
   // The one sentence a parent reads first: what is already handled, or that this one needs them.
@@ -410,9 +415,29 @@
     if (plan.status === "refused") return "I won't guess on this one — it needs you.";
     if (p.result && !["executed", "drafted"].includes(p.result.status)) return "that didn't go through — see below.";
     if (!s) return "two things on your calendar collide.";
-    if (s.kind === "draft_handoff") return p.result ? `done — a note asking ${to} to cover is in your outbox for you to send.` : `<em>${to}</em> can cover it. A note is ready for you to approve.`;
+    const d = handoffDraft(plan.plan_id), rep = d && d.reply;
+    if (s.kind === "draft_handoff" && rep && rep.answer === "no") return `${to} said no — this one is still yours. Tell me who else can cover, then plan again.`;
+    if (s.kind === "draft_handoff" && rep && rep.undone) return `undone — ${to} no longer covers it; it is yours again.`;
+    if (s.kind === "draft_handoff") return p.result ? `a note asking ${to} to cover is in your outbox for you to send. Tell me when ${to} answers.` : `<em>${to}</em> can cover it. A note is ready for you to approve.`;
     if (s.kind === "draft_message") return p.result ? `done — a message to ${to} is in your outbox for you to send.` : `a message to <em>${to}</em> is ready for you to approve.`;
     return p.result ? `done — ${esc(evTitle(s.target_event_id))} moved to ${esc(hm(s.after.start))}.` : `I can move ${esc(evTitle(s.target_event_id))} to <em>${esc(hm(s.after.start))}</em>.`;
+  }
+  const handoffDraft = (plan_id) => STATE.outbox.find((x) => x.plan_id === plan_id && x.kind === "handoff");
+  function covered(c, d) {
+    const e = c.a.covered_by ? c.a : c.b;
+    return `<em>covered</em> — ${esc(e.covered_by)} said yes and has ${esc(e.title)}. Your calendar says so (${esc(e.version)}).`;
+  }
+  // The answer to a handoff: the parent sent it and records what came back. Nothing here reads messages.
+  function replyHtml(d) {
+    if (!d) return "";
+    const who = esc(d.to.join(", "));
+    if (!d.reply) return `<div class="actions"><button class="reply" data-draft="${esc(d.draft_id)}" data-answer="yes">${who} said yes</button><button class="quiet reply" data-draft="${esc(d.draft_id)}" data-answer="no">${who} said no</button></div><p class="fine">You sent the note; tell me what ${who} answered. I never read or send your messages. A yes marks the pickup as covered on your calendar, and you can undo it.</p>`;
+    if (d.reply.answer === "yes" && d.reply.undo_token && !d.reply.undone) return `<div class="actions"><button class="quiet undo" data-token="${esc(d.reply.undo_token)}">Undo</button></div>`;
+    return "";
+  }
+  function wireReplies(el) {
+    el.querySelectorAll(".reply").forEach((b) => b.addEventListener("click", async () => { const box = b.closest(".conflict, .ob") || el; el.querySelectorAll(".reply").forEach((x) => (x.disabled = true)); try { await api("POST", "/api/reply", { draft_id: b.dataset.draft, answer: b.dataset.answer }); await refresh(); } catch (e) { const er = box.querySelector(".err"); if (er) er.textContent = `${e.code}: ${e.message}`; el.querySelectorAll(".reply").forEach((x) => (x.disabled = false)); } }));
+    el.querySelectorAll(":scope > .conflict > .actions .undo, .ob .undo").forEach((b) => b.addEventListener("click", async () => { b.disabled = true; try { await api("POST", "/api/undo", { token: b.dataset.token }); await refresh(); } catch (e) { b.disabled = false; } }));
   }
   const evTitle = (id) => (STATE.calendar.events.find((e) => e.event_id === id) || { title: id }).title;
   function stepWords(s) {
@@ -492,7 +517,7 @@
     const shown = CAL_BOTH ? days : days.slice(days.indexOf(today) >= 7 ? 7 : 0, days.indexOf(today) >= 7 ? 14 : 7);
     $("cal-title").textContent = CAL_BOTH ? "Your two weeks" : "This week";
     $("cal-toggle").textContent = CAL_BOTH ? "Show this week only" : "Show the week before too";
-    $("calendar").innerHTML = shown.map((d) => `<div class="day ${d === today ? "today" : ""}"><h4>${esc(dow(d).slice(0, 3))} ${esc(md(d))}</h4>${(by[d] || []).map((e) => `<div class="ev ${e.attendees.length ? "others" : ""} ${e.all_day ? "allday" : ""}" title="${esc(e.event_id)} ${esc(e.version)}">${e.all_day ? "all day" : esc(e.start.slice(11, 16) + "–" + e.end.slice(11, 16))} ${esc(e.title)}${e.attendees.length ? ` <span class="muted">(with ${esc(e.attendees.join(", "))})</span>` : ""} <span class="muted mono">${esc(e.version)}</span></div>`).join("")}</div>`).join("");
+    $("calendar").innerHTML = shown.map((d) => `<div class="day ${d === today ? "today" : ""}"><h4>${esc(dow(d).slice(0, 3))} ${esc(md(d))}</h4>${(by[d] || []).map((e) => `<div class="ev ${e.attendees.length ? "others" : ""} ${e.all_day ? "allday" : ""}" title="${esc(e.event_id)} ${esc(e.version)}">${e.all_day ? "all day" : esc(e.start.slice(11, 16) + "–" + e.end.slice(11, 16))} ${esc(e.title)}${e.attendees.length ? ` <span class="muted">(with ${esc(e.attendees.join(", "))})</span>` : ""}${e.covered_by ? ` <span class="covered">(covered by ${esc(e.covered_by)})</span>` : ""} <span class="muted mono">${esc(e.version)}</span></div>`).join("")}</div>`).join("");
   }
 
   $("cal-toggle").addEventListener("click", () => { CAL_BOTH = !CAL_BOTH; renderCalendar(); });
@@ -510,7 +535,9 @@
   }
 
   function renderOutbox() {
-    $("outbox").innerHTML = STATE.outbox.length ? STATE.outbox.map((d) => `<div class="ob"><div><b>${esc(d.kind)}</b> to ${esc(d.to.join(", "))} · <span class="muted">${esc(d.status)} · you send it · ${esc(fmt(d.created_at))}</span></div><div><i>${esc(d.subject)}</i></div><pre>${esc(d.body)}</pre></div>`).join("") : '<p class="muted">No drafts yet.</p>';
+    const said = (d) => !d.reply ? "" : ` · <span class="${d.reply.answer === "yes" && !d.reply.undone ? "covered" : "muted"}">${esc(d.to.join(", "))} said ${esc(d.reply.answer)}${d.reply.undone ? " (undone)" : ""}</span>`;
+    $("outbox").innerHTML = STATE.outbox.length ? STATE.outbox.map((d) => `<div class="ob"><div><b>${esc(d.kind)}</b> to ${esc(d.to.join(", "))} · <span class="muted">${esc(d.status)} · you send it · ${esc(fmt(d.created_at))}</span>${said(d)}</div><div><i>${esc(d.subject)}</i></div><pre>${esc(d.body)}</pre>${d.kind === "handoff" ? replyHtml(d) : ""}<div class="err"></div></div>`).join("") : '<p class="muted">No drafts yet.</p>';
+    wireReplies($("outbox"));
   }
 
   // ---- What it cost ----

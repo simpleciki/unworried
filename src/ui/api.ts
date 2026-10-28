@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { detectConflicts } from "../action/detect.ts";
 import type { Conflict } from "../action/detect.ts";
-import { executePlan } from "../action/execute.ts";
+import { CALENDAR_TIMEOUT_MS, executePlan, matches, withTimeout } from "../action/execute.ts";
 import type { ExecutionResult } from "../action/execute.ts";
 import { planConflict } from "../action/plan.ts";
 import type { ActionPlan } from "../action/plan.ts";
@@ -47,7 +47,10 @@ export type SeatRow = {
   refuses: string | null; // what the assistant will refuse because of this seat's state
 };
 
-export type ConflictView = { conflict_id: string; at: string; a: CalEvent; b: CalEvent; overlap: { start: string; end: string }; plan_id?: string };
+// covered_by: one of the two events is covered by someone who said yes — handled, shown, not planned again.
+export type ConflictView = { conflict_id: string; at: string; a: CalEvent; b: CalEvent; overlap: { start: string; end: string }; plan_id?: string; pair: string; covered_by?: string };
+
+const pairOf = (a: CalEvent, b: CalEvent) => [a.event_id, b.event_id].sort().join("|");
 
 export type StateView = {
   judge: string;
@@ -136,7 +139,12 @@ export class Api {
     const events = await sb.calendar.all();
     return detectConflicts(events)
       .filter((c) => opts.all || Date.parse(c.overlap.start) >= this.m.clock)
-      .map((c) => ({ conflict_id: c.conflict_id, at: c.overlap.start, a: c.a, b: c.b, overlap: c.overlap, plan_id: [...sb.plans.values()].filter((p) => p.plan.conflict_id === c.conflict_id).at(-1)?.plan.plan_id })); // the latest plan for it
+      .map((c) => {
+        const pair = pairOf(c.a, c.b);
+        const covered_by = c.a.covered_by ?? c.b.covered_by;
+        const plan_id = [...sb.plans.values()].filter((p) => p.plan.conflict_id === c.conflict_id || p.pair === pair).at(-1)?.plan.plan_id; // the latest plan for it
+        return { conflict_id: c.conflict_id, at: c.overlap.start, a: c.a, b: c.b, overlap: c.overlap, pair, ...(plan_id ? { plan_id } : {}), ...(covered_by ? { covered_by } : {}) };
+      });
   }
 
   async state(sb: JudgeSandbox): Promise<StateView> {
@@ -221,6 +229,7 @@ export class Api {
     const view = conflicts.find((c) => c.conflict_id === conflict_id);
     if (!view) throw new ApiError(404, "unknown_conflict", `no conflict ${conflict_id} on this calendar now (events may have moved)`);
     if (!opts.all && Date.parse(view.overlap.start) < this.m.clock) throw new ApiError(409, "in_the_past", `this conflict is before the demo clock; use the contrast view`);
+    if (view.covered_by) throw new ApiError(409, "covered", `${view.covered_by} said yes and covers this one; undo that first to plan it again`);
     const conflict: Conflict = { conflict_id: view.conflict_id, a: view.a, b: view.b, overlap: view.overlap };
     const events = await sb.calendar.all();
     const seats = sb.ledger.seatsView(this.m.knownAt());
@@ -236,7 +245,7 @@ export class Api {
     const { guard } = this.m.guardFor();
     const explanation = await explainPlan(plan, lookupsFor(plan, seats), { guard, session_id: sb.session_id, action_id, cache: sb.cache });
     sb.trace.write({ session_id: sb.session_id, action: "plan", ref: plan.plan_id, outcome: plan.status, details: { action_id, conflict_id, steps: plan.steps.map((s) => s.kind), explanation_mode: explanation.mode } });
-    const stored: StoredPlan = { plan, explanation, created_at: chicagoIso(this.m.chatNow()) };
+    const stored: StoredPlan = { plan, explanation, created_at: chicagoIso(this.m.chatNow()), pair: view.pair };
     sb.plans.set(plan.plan_id, stored);
     return stored;
   }
@@ -254,7 +263,48 @@ export class Api {
     sb.trace.write({ session_id: sb.session_id, action: "ui.undo", ref: action_id, outcome: "requested", details: { token } });
     const r = await undo(token, { calendar: sb.calendar, store: sb.actions, trace: sb.trace, session_id: sb.session_id });
     for (const p of sb.plans.values()) if (p.result?.undo_token === token) p.undo = r;
+    if (r.status === "restored") sb.outbox.markUndone(token);
     return r;
+  }
+
+  // The answer to a handoff the parent sent. They record it (nothing here reads their messages). "yes" →
+  // the event is written as covered by that person, read back, and can be undone; the conflict is handled.
+  // "no" → recorded, nothing on the calendar changes, the conflict still needs them.
+  async reply(sb: JudgeSandbox, draft_id: string, answer: string, action_id: string) {
+    if (answer !== "yes" && answer !== "no") throw new ApiError(400, "bad_answer", 'answer must be "yes" or "no"');
+    const d = sb.outbox.get(draft_id);
+    if (!d) throw new ApiError(404, "unknown_draft", `no draft ${draft_id} in this outbox`);
+    if (d.kind !== "handoff") throw new ApiError(409, "not_a_handoff", "only a handoff asks someone to cover; record replies to it there");
+    if (d.reply) throw new ApiError(409, "already_replied", `already recorded: ${d.to.join(", ")} said ${d.reply.answer}`);
+    const step = sb.plans.get(d.plan_id)?.plan.steps.find((s) => s.kind === "draft_handoff");
+    if (!step) throw new ApiError(409, "no_plan", `the plan behind this draft is gone (sandbox reset?)`);
+    const who = d.to[0];
+    const title = (await sb.calendar.get(step.target_event_id))?.title ?? step.target_event_id;
+    sb.trace.write({ session_id: sb.session_id, action: "ui.reply", ref: action_id, outcome: answer, details: { draft_id, event_id: step.target_event_id, who } });
+    if (answer === "no") {
+      sb.outbox.recordReply(draft_id, { answer: "no" });
+      sb.say({ message_id: `a-${randomUUID().slice(0, 8)}`, sent_at: chicagoIso(this.m.chatNow()), from: "assistant", text: `Noted: ${who} said no. "${title}" is still yours — nothing on your calendar changed. Tell me who else can cover, then plan again.` });
+      return { status: "declined" as const, event_id: step.target_event_id };
+    }
+    const ms = CALENDAR_TIMEOUT_MS;
+    const current = await withTimeout(sb.calendar.get(step.target_event_id), ms, `read ${step.target_event_id}`);
+    if (!current) throw new ApiError(409, "event_gone", `event ${step.target_event_id} is not on the calendar`);
+    if (current.covered_by) throw new ApiError(409, "covered", `${current.covered_by} already covers this one`);
+    const written = await withTimeout(sb.calendar.update(current.event_id, { covered_by: who }, current.version), ms, `update ${current.event_id}`);
+    const back = await withTimeout(sb.calendar.get(current.event_id), ms, `read back ${current.event_id}`);
+    const mismatch = matches(back, { covered_by: who });
+    if (mismatch) {
+      await sb.calendar.update(current.event_id, { covered_by: undefined }, written.version).catch(() => undefined);
+      sb.trace.write({ session_id: sb.session_id, action: "reply.write", ref: current.event_id, outcome: "failed", details: { mismatch } });
+      throw new ApiError(500, "readback_failed", `the calendar did not keep it: ${mismatch}; nothing recorded`);
+    }
+    const token = randomUUID();
+    sb.actions.undo.set(token, { token, plan_id: d.plan_id, session_id: sb.session_id, writes: [{ event_id: current.event_id, before: { covered_by: undefined }, written_version: written.version }] });
+    const readback = { event_id: back!.event_id, version: back!.version, covered_by: back!.covered_by };
+    sb.outbox.recordReply(draft_id, { answer: "yes", undo_token: token, readback });
+    sb.trace.write({ session_id: sb.session_id, action: "reply.write", ref: current.event_id, outcome: "covered", details: { who, version: back!.version } });
+    sb.say({ message_id: `a-${randomUUID().slice(0, 8)}`, sent_at: chicagoIso(this.m.chatNow()), from: "assistant", text: `✓ ${who} said yes. "${title}" is covered by ${who} — calendar read back ${back!.version}. You can undo it.` });
+    return { status: "covered" as const, event_id: current.event_id, readback, undo_token: token };
   }
 
   // D7: the T10 contrast — the two Monday focus-block conflicts (10/26, before the clock; 11/2, before the
