@@ -36,6 +36,7 @@ describe("NebiusProvider", () => {
       ],
       max_tokens: 256,
       temperature: 0.2,
+      chat_template_kwargs: { enable_thinking: false },
     });
   });
 

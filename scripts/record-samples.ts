@@ -46,6 +46,9 @@ async function main() {
   // (b) T3: the Saturday conflict → refused → "which one counts?"
   const sat = (await api.conflicts(sb, { all: true })).find((c) => c.at.startsWith("2026-10-31"));
   if (sat) console.log("(b) plan", (await api.plan(sb, sat.conflict_id, action(), { all: true })).explanation);
+  // The question a judge types in route (b): a mention, so no card and nothing changes.
+  const q = await api.chat(sb, "Which Saturday note counts?", action());
+  console.log(`(b) question ${q.mode}: ${q.candidates.length} candidate(s)`);
   // (c) T10: the two focus blocks.
   const c = await api.contrast(sb, action());
   console.log("(c) contrast", c.pairs.map((p) => `${p.plan.status}: ${p.explanation.mode}`));

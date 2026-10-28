@@ -85,7 +85,9 @@ export class NebiusProvider implements ChatProvider {
     if (!req.model) throw new ProviderError("http", "NEBIUS_MODEL not set");
     if (!Number.isInteger(req.maxTokens) || (req.maxTokens as number) <= 0) throw new ProviderError("http", "maxTokens is required: a call without a token cap has no worst-case cost");
     const messages = [...(req.system ? [{ role: "system", content: req.system }] : []), { role: "user", content: req.user }];
-    const body = JSON.stringify({ model: req.model, messages, max_tokens: req.maxTokens, temperature: req.temperature ?? 0 });
+    // Thinking off: Nemotron 3.5 Lightning reasons by default and the reasoning counts against max_tokens —
+    // on 2026-10-27 every JSON call (intake, explain) stopped at exactly 512 output tokens before its answer.
+    const body = JSON.stringify({ model: req.model, messages, max_tokens: req.maxTokens, temperature: req.temperature ?? 0, chat_template_kwargs: { enable_thinking: false } });
     const started = this.now();
     const r = await this.request("/chat/completions", { method: "POST", body });
     const text = await safeText(r);
