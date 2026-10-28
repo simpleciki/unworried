@@ -136,7 +136,7 @@ export class Api {
     const events = await sb.calendar.all();
     return detectConflicts(events)
       .filter((c) => opts.all || Date.parse(c.overlap.start) >= this.m.clock)
-      .map((c) => ({ conflict_id: c.conflict_id, at: c.overlap.start, a: c.a, b: c.b, overlap: c.overlap, plan_id: [...sb.plans.values()].find((p) => p.plan.conflict_id === c.conflict_id)?.plan.plan_id }));
+      .map((c) => ({ conflict_id: c.conflict_id, at: c.overlap.start, a: c.a, b: c.b, overlap: c.overlap, plan_id: [...sb.plans.values()].filter((p) => p.plan.conflict_id === c.conflict_id).at(-1)?.plan.plan_id })); // the latest plan for it
   }
 
   async state(sb: JudgeSandbox): Promise<StateView> {
@@ -225,6 +225,14 @@ export class Api {
     const events = await sb.calendar.all();
     const seats = sb.ledger.seatsView(this.m.knownAt());
     const plan = planConflict(conflict, { events, seats });
+    // Plan again with nothing changed → the same plan id: return it as stored (its approval and undo kept,
+    // no second model call), moved to the end so it is this conflict's latest plan.
+    const existing = sb.plans.get(plan.plan_id);
+    if (existing) {
+      sb.plans.delete(plan.plan_id);
+      sb.plans.set(plan.plan_id, existing);
+      return existing;
+    }
     const { guard } = this.m.guardFor();
     const explanation = await explainPlan(plan, lookupsFor(plan, seats), { guard, session_id: sb.session_id, action_id, cache: sb.cache });
     sb.trace.write({ session_id: sb.session_id, action: "plan", ref: plan.plan_id, outcome: plan.status, details: { action_id, conflict_id, steps: plan.steps.map((s) => s.kind), explanation_mode: explanation.mode } });

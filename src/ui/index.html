@@ -397,7 +397,8 @@
       <div class="fine" style="margin-top:0">They overlap ${esc(hm(c.overlap.start))} – ${esc(hm(c.overlap.end))}, counting the buffer kept around each event.</div>
       ${p ? "" : `<div class="actions"><button class="plan-btn">Plan</button></div><p class="fine">Planning reads what holds today and drafts what to do. Nothing changes until you approve.</p>`}
       <div class="err"></div>
-      <div class="plan-out">${p ? planHtml(p) : ""}</div></div>`;
+      <div class="plan-out">${p ? planHtml(p) : ""}</div>
+      ${p ? `<div class="actions"><button class="quiet plan-btn">Plan again</button></div><p class="fine">Changed an arrangement since? Plan again reads what holds now. Nothing changes until you approve.</p>` : ""}</div>`;
     wirePlan(out.querySelector(".conflict"), c.conflict_id);
   }
 
@@ -448,6 +449,7 @@
   }
   function planHtml(p) {
     const plan = p.plan, ex = p.explanation;
+    const shown = p.undo ? p.undo.status : p.result ? p.result.status : plan.status; // where it stands now, not where it started
     const steps = plan.status === "refused" ? `<li class="status-refused">Refused: ${esc(plan.refusal.reason)}</li>` : plan.steps.map((s) => `<li>${stepWords(s)}</li>`).join("");
     const drafts = plan.status === "refused" ? "" : plan.steps.filter((s) => s.draft).map((s) => `<details class="draft"><summary><div class="to">Draft to ${esc(s.draft.to.join(", "))} <span class="never">Draft · you send it</span></div><div class="subj">${esc(s.draft.subject)}</div><div class="fine" style="margin:.2rem 0 0">Read the draft</div></summary><pre>${esc(s.draft.body)}</pre></details>`).join("");
     const prose = ex.mode === "model" ? `<div class="explain"><b>Explanation (model, checked):</b> ${esc(ex.explanation_prose)}</div>${ex.explanation_removed.length ? `<div class="explain muted">not supported by the plan:<br>${ex.explanation_removed.map((r) => `<span class="removed">${esc(r)}</span>`).join("<br>")}</div>` : ""}` : `<div class="fine">explanation: template (${esc(ex.note || "model off")})</div>`;
@@ -455,7 +457,7 @@
     const undone = p.undo ? `<div class="result"><b>Undo:</b> <span class="status-${esc(p.undo.status)}">${esc(p.undo.status)}</span>${p.undo.reason ? ` — ${esc(p.undo.reason)}` : ""} ${(p.undo.events || []).map((e) => `· ${esc(evTitle(e.event_id))} ${esc(e.outcome)}${e.readback ? ` (${esc(e.readback.version)} ${esc(fmt(e.readback.start))})` : ""}`).join(" ")}</div>` : "";
     const buttons = `${plan.status === "ready" && !p.result ? `<button class="approve" data-plan="${esc(plan.plan_id)}">Approve</button>` : ""}${p.result && p.result.undo_token && !p.undo ? `<button class="quiet undo" data-token="${esc(p.result.undo_token)}">Undo</button>` : ""}`;
     return `<div class="plan" data-plan-id="${esc(plan.plan_id)}">
-      <div class="lbl">The plan · <span class="status-${esc(plan.status)}">${esc(plan.status)}</span></div>
+      <div class="lbl">The plan · <span class="status-${esc(shown)}">${esc(shown)}</span></div>
       <ul class="steps">${steps}</ul>${drafts}
       ${result}${undone}
       ${buttons ? `<div class="actions">${buttons}</div>` : ""}

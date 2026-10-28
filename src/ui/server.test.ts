@@ -339,6 +339,28 @@ describe("D9 — the T1 route end to end through route()", () => {
     expect(after.cards["pickup.oct3"].quote).toMatch(/^Thursdays I pick up, backup Jordan/);
   });
 
+  it("Plan again: nothing changed → the same plan, its approval kept; an arrangement changed → a new plan, shown as the latest", async () => {
+    let t = CLOCK;
+    const { guard } = guardWith({});
+    const { route } = app({ guard, now: () => (t += 60_000) });
+    const c = client(route);
+    await login(c);
+    const thu = (((await c("GET", "/api/state")).json as { conflicts: { at: string; conflict_id: string }[] }).conflicts).find((x) => x.at.startsWith("2026-11-05"))!;
+    const first = (await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json as { plan: { plan_id: string } };
+    expect(((await c("POST", "/api/approve", { plan_id: first.plan.plan_id })).json as { status: string }).status).toBe("drafted");
+    const again = (await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json as { plan: { plan_id: string }; result?: { status: string } };
+    expect(again.plan.plan_id).toBe(first.plan.plan_id);
+    expect(again.result?.status).toBe("drafted"); // kept, not wiped by planning again
+    const chat = (await c("POST", "/api/chat", { text: "Change of plan: Thursdays I pick up, backup Jordan — Alex is travelling Thursdays now." })).json as { candidates: { candidate_id: string }[] };
+    await c("POST", "/api/confirm", { candidate_id: chat.candidates[0].candidate_id, edits: { card_id: "pickup.nov3" } });
+    const fresh = (await c("POST", "/api/plan", { conflict_id: thu.conflict_id })).json as { plan: { plan_id: string; seat_versions: string[] }; result?: unknown };
+    expect(fresh.plan.plan_id).not.toBe(first.plan.plan_id);
+    expect(fresh.plan.seat_versions).toContain("pickup_backup|thursday|kids=pickup.nov3");
+    expect(fresh.result).toBeUndefined();
+    const st = (await c("GET", "/api/state")).json as { conflicts: { conflict_id: string; plan_id?: string }[] };
+    expect(st.conflicts.find((x) => x.conflict_id === thu.conflict_id)!.plan_id).toBe(fresh.plan.plan_id);
+  });
+
   it("sentence → candidate → confirm (REPLACES) → seat PASS new card → re-plan 11/5 → handoff to Jordan → one draft, never sent", async () => {
     const { guard } = guardWith({});
     const { route, sandboxes } = app({ guard });
