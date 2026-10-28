@@ -5,7 +5,7 @@ import { detectConflicts } from "../action/detect.ts";
 import { seedEvents } from "../action/fixtures.test-helpers.ts";
 import { planConflict } from "../action/plan.ts";
 import type { Lookup } from "../action/seats-view.ts";
-import { checkSentence, explainPlan } from "./explain.ts";
+import { checkSentence, claimsSending, explainPlan } from "./explain.ts";
 import { DEMO_CLOCK, fakeGuard, reply, seededStore, tmp } from "./fixtures.test-helpers.ts";
 
 let dir: string;
@@ -65,6 +65,19 @@ describe("C10 — explain", () => {
     expect(checkSentence("Jordan covers the flight at 17:30.", facts).ok).toBe(true);
     expect(checkSentence("Alex covers it at 17:30.", facts)).toEqual({ ok: false, unsupported: ["Alex"] });
     expect(checkSentence("The Thursday pickup moves to 18:00.", facts)).toEqual({ ok: false, unsupported: ["18:00"] });
+  });
+
+  it("removes a sentence that says it sends — the assistant only drafts — and keeps a negated one", async () => {
+    expect(claimsSending("The assistant will send a handoff message to Jordan.")).toBe(true);
+    expect(claimsSending("Jordan was emailed.")).toBe(true);
+    expect(claimsSending("A handoff to Jordan is drafted and never sent.")).toBe(false);
+    expect(claimsSending("Nothing is sent until you approve.")).toBe(false);
+    expect(claimsSending("The handoff to Jordan is drafted.")).toBe(false);
+    const { plan, lookups } = thursdayPlan();
+    const { guard } = fakeGuard(dir, () => reply({ sentences: ["The assistant will send a handoff message to Jordan.", "Jordan is the Thursday backup."] }));
+    const r = await explainPlan(plan, lookups, { guard, session_id: "s1", action_id: "a1" });
+    expect(r.explanation_prose).toBe("Jordan is the Thursday backup.");
+    expect(r.explanation_removed).toEqual(["The assistant will send a handoff message to Jordan. (says it sends; the assistant only drafts, never sends)"]);
   });
 
   it("keeps at most four sentences", async () => {

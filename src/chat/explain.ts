@@ -38,6 +38,15 @@ export function checkSentence(sentence: string, facts: string): { ok: boolean; u
   return { ok: unsupported.length === 0, unsupported };
 }
 
+// The assistant only drafts: a sentence saying something is (or will be) sent, emailed, texted or notified
+// is removed even when every name in it is in the plan. A negated one ("never sent", "is not sent") stays.
+const SENDING = /\b(send|sends|sending|sent|emails?|emailed|emailing|texts?|texted|texting|notif(?:y|ies|ied|ying))\b/gi;
+const NEGATION = /\b(never|not|no|won't|isn't|aren't|wasn't|doesn't|don't|cannot|can't|nothing)\b[^.]{0,30}$/i;
+export function claimsSending(sentence: string): boolean {
+  for (const m of sentence.matchAll(SENDING)) if (!NEGATION.test(sentence.slice(0, m.index))) return true;
+  return false;
+}
+
 export function factsOf(plan: ActionPlan, lookups: Lookup<unknown>[]): string {
   const parts = [plan.explanation, plan.refusal?.reason ?? "", JSON.stringify(plan.steps), plan.at, plan.conflict_id, plan.plan_id];
   for (const l of lookups) parts.push(l.key, l.state, l.quote ?? "", l.decided_at ?? "", l.decided_by ?? "", l.effective ?? "", l.reason ?? "", String(l.value ?? ""), l.replaced?.quote ?? "", l.replaced?.decided_at ?? "", ...l.cards);
@@ -63,6 +72,10 @@ export async function explainPlan(plan: ActionPlan, lookups: Lookup<unknown>[], 
   const kept: string[] = [];
   const removed: string[] = [];
   for (const s of sentences.map((x) => x.trim()).filter(Boolean)) {
+    if (claimsSending(s)) {
+      removed.push(`${s} (says it sends; the assistant only drafts, never sends)`);
+      continue;
+    }
     const check = checkSentence(s, facts);
     if (check.ok && kept.length < MAX_SENTENCES) kept.push(s);
     else removed.push(check.ok ? `${s} (beyond ${MAX_SENTENCES} sentences)` : `${s} (not in the plan: ${check.unsupported.join(", ")})`);
