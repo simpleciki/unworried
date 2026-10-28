@@ -24,7 +24,7 @@ than their session budget. The demo clock is fixed at **Tue 2026-11-03 09:00 CST
 |---|---|---|
 | Demo clock | `Demo clock: 2026-11-03 09:00 (CST)` from `DEMO_CLOCK` | — |
 | Wall pill | `Model: on · session budget $X of $0.15 left`, both numbers from the spend ledger for this login | — |
-| Red banner | `Model is off (reason) — showing recorded replies; nothing here is live` whenever `SpendGuard.state()` is not enabled | — |
+| Banner (clay, not red) | `Model is off (reason) — showing recorded replies; nothing here is live` whenever `SpendGuard.state()` is not enabled | — |
 | Reset my sandbox | wipes and re-seeds **this judge's** calendar, ledger, outbox, chat and plans | never touches another judge |
 | Judge name · Log out | the login's name; logout clears the cookie | — |
 

@@ -29,10 +29,10 @@ Paste it only into Render's environment (step 2). Never into chat, a file or a c
 
 ## 2. The Render web service (author)
 
-Render needs the code from a GitHub repository: `simpleciki/unworried`, **private** (created and pushed
-2026-10-27 on the author's go-ahead). When connecting GitHub to Render, grant Render access to that one
-repository only. It goes public only after the 10/29 secret scan passes **and** the author says so (the rules
-require a public repository with an open-source licence at submission).
+Render needs the code from a GitHub repository: `simpleciki/unworried` (created private and pushed 2026-10-27 on
+the author's go-ahead; made public for submission after a full-history secret scan, as the rules require a public
+repository with an open-source licence). When connecting GitHub to Render, grant Render access to that one
+repository only.
 
 Settings:
 

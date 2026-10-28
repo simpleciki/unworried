@@ -36,7 +36,7 @@ because the wall cannot know whether the server billed it.
 
 Test S3 breaks the budget code and shows the rate limit still holds; S4 breaks the rate limiter and shows the
 budget still holds. With default limits the worst hour with a broken budget is 12 calls × 60 min × (1,024 output
-tokens + prompt) — at the provisional Nemotron Nano price about $0.18/hour, before the hourly breaker trips at $0.50.
+tokens + prompt) — at Nemotron 3 Super's console price about $0.66/hour for output alone ($0.90 / 1M tokens), under $1 with ~1,000-token prompts, before the hourly breaker trips at $0.50.
 
 ### Limits
 

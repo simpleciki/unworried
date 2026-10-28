@@ -28,7 +28,7 @@ are invented.
   three events sit on 10/31 (−05:00) and three on 11/01 (−06:00). Every sandbox session starts as a copy
   of this file.
 - The decision cards that the seed's conflicts are judged against are built in
-  `src/action/fixtures.test-helpers.ts` for this task; the conversational version comes later.
+  `src/action/fixtures.test-helpers.ts` for this task; the conversational version is `data/conversation-seed.jsonl`, read by `src/chat/`.
 
 ## Deliberate conflicts in the seed
 
@@ -38,8 +38,8 @@ are invented.
 | Fri 10/30 16:00 | Loomstack offsite day × Week review | review (own focus) loses to the meeting and may be moved → reschedule |
 | Sat 10/31 15:00 | Flight home from Madison × robotics showcase pickup | pickup loses to travel; two undated Saturday-backup cards → **refused, both named** |
 | Mon 11/2 10:00 | Monday focus block × investor intro call | focus loses; "may not be moved from 11/2" is in force → **refused** |
-| Tue 11/3 17:15 | Flight to Denver × Tuesday pickup | pickup loses; Tuesday backup is still Alex → handoff draft to Alex |
-| Thu 11/5 17:15 | Flight home from Denver × Thursday pickup | pickup loses; Thursday backup is Jordan (10/3 decision) → handoff draft to Jordan, never Alex |
+| Tue 11/3 17:30 | Flight to Denver × Tuesday pickup | pickup loses; Tuesday backup is still Alex → handoff draft to Alex |
+| Thu 11/5 17:30 | Flight home from Denver × Thursday pickup | pickup loses; Thursday backup is Jordan (10/3 decision) → handoff draft to Jordan, never Alex |
 | Fri 11/6 15:30 | Design review with Devin × robotics demo day pickup | review loses; it has an attendee → message draft with two slots, calendar untouched |
 
 Mon 10/26 11:00: the focus block ends exactly when the dev sync starts — touching, not a conflict.
